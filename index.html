@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="PEAK Adventures — Nuwara Eliya Day Expedition. Book your seat to Sri Lanka's misty highland paradise.">
+<title>PEAK | Nuwara Eliya Day Expedition</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --neon:#00FFD1;--neon2:#7B61FF;--neon3:#FF6B6B;
+  --dark:#040D12;--dark2:#081822;--dark3:#0D2233;
+  --glass:rgba(0,255,209,0.05);--glass2:rgba(123,97,255,0.07);
+  --border-neon:rgba(0,255,209,0.22);--border-neon2:rgba(123,97,255,0.28);
+  --text:#E8F4F8;--muted:#7A9BAD;
+  --font-d:'Orbitron',monospace;--font-b:'Space Grotesk',sans-serif;
+}
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent}
+body{background:var(--dark);color:var(--text);font-family:var(--font-b);overflow-x:hidden}
+.cursor,.cursor-ring{display:none}
+@media(pointer:fine){.cursor,.cursor-ring{display:block}body,a,button,label,select,.faq-q,.g-item{cursor:none}}
+.cursor{width:10px;height:10px;background:var(--neon);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);box-shadow:0 0 10px var(--neon);transition:transform 0.1s}
+.cursor-ring{width:32px;height:32px;border:1px solid rgba(0,255,209,0.35);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all 0.08s linear}
+.cursor.hover{transform:translate(-50%,-50%) scale(2)}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,209,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,209,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.scan-line{position:fixed;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--neon),transparent);z-index:1;pointer-events:none;animation:scan 10s linear infinite;opacity:0.25}
+@keyframes scan{0%{top:-2px}100%{top:100vh}}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0.85rem 2rem;background:rgba(4,13,18,0.92);backdrop-filter:blur(24px);border-bottom:1px solid var(--border-neon);z-index:200;gap:1rem}
+.nav-logo{display:flex;align-items:center;gap:0.7rem;flex-shrink:0}
+.nav-logo img,.logo-placeholder{width:36px;height:36px;object-fit:contain}
+.logo-placeholder{background:rgba(0,255,209,0.1);border:1px solid var(--border-neon);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:0.55rem;color:var(--neon);letter-spacing:1px}
+.logo-text{font-family:var(--font-d);font-size:1.2rem;font-weight:900;color:var(--neon);letter-spacing:4px;text-shadow:0 0 16px rgba(0,255,209,0.4)}
+.logo-text span{color:var(--muted);font-size:0.5rem;display:block;letter-spacing:5px;font-weight:400;margin-top:-2px}
+.nav-links{display:flex;gap:1.8rem;list-style:none}
+.nav-links a{color:var(--muted);font-size:0.7rem;letter-spacing:2px;text-decoration:none;text-transform:uppercase;transition:color 0.3s;white-space:nowrap}
+.nav-links a:hover{color:var(--neon)}
+.nav-right{display:flex;gap:0.6rem;flex-shrink:0}
+.nav-btn{background:transparent;border:1px solid var(--neon);color:var(--neon);padding:0.45rem 1.1rem;font-family:var(--font-d);font-size:0.58rem;letter-spacing:2px;cursor:pointer;transition:all 0.3s;clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%);white-space:nowrap}
+.nav-btn:hover{background:var(--neon);color:var(--dark)}
+.nav-btn.secondary{border-color:var(--neon2);color:var(--neon2)}
+.nav-btn.secondary:hover{background:var(--neon2);color:var(--dark)}
+.hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.hamburger span{display:block;width:22px;height:1.5px;background:var(--neon);transition:all 0.3s}
+.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+.mobile-menu{display:none;position:fixed;top:62px;left:0;right:0;background:rgba(4,13,18,0.97);backdrop-filter:blur(24px);border-bottom:1px solid var(--border-neon);padding:1.5rem 2rem;z-index:199;flex-direction:column;gap:1rem}
+.mobile-menu.open{display:flex}
+.mobile-menu a{color:var(--muted);font-size:0.85rem;letter-spacing:3px;text-decoration:none;text-transform:uppercase;transition:color 0.3s;padding:0.4rem 0;border-bottom:1px solid rgba(0,255,209,0.08)}
+.mobile-menu a:hover{color:var(--neon)}
+.mob-cta-row{display:flex;gap:0.5rem;margin-top:0.4rem;flex-wrap:wrap}
+.mob-btn{flex:1;padding:0.75rem;font-family:var(--font-d);font-size:0.62rem;letter-spacing:2px;cursor:pointer;border:none;clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%)}
+.mob-btn.primary{background:var(--neon);color:var(--dark)}
+.mob-btn.outline{background:transparent;color:var(--neon2);border:1px solid var(--neon2)}
+
+/* HERO */
+#hero{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding-top:68px}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 65% 55% at 50% 55%,rgba(0,255,209,0.06) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 85% 15%,rgba(123,97,255,0.09) 0%,transparent 60%)}
+.mt-far{position:absolute;bottom:0;left:0;right:0;height:42%;background:linear-gradient(180deg,rgba(13,34,51,0.6) 0%,var(--dark2) 100%);clip-path:polygon(0% 100%,0% 55%,7% 35%,14% 52%,21% 22%,29% 44%,36% 8%,43% 36%,50% 3%,57% 28%,64% 16%,71% 40%,78% 18%,85% 46%,92% 28%,100% 50%,100% 100%)}
+.mt-mid{position:absolute;bottom:0;left:0;right:0;height:30%;background:rgba(8,24,34,0.85);clip-path:polygon(0% 100%,0% 78%,9% 58%,19% 74%,30% 42%,41% 65%,52% 36%,63% 60%,74% 48%,84% 68%,94% 52%,100% 62%,100% 100%)}
+.mt-near{position:absolute;bottom:0;left:0;right:0;height:18%;background:var(--dark);clip-path:polygon(0% 100%,0% 90%,15% 70%,30% 85%,45% 65%,60% 80%,75% 60%,90% 78%,100% 65%,100% 100%)}
+.hero-content{position:relative;z-index:2;text-align:center;padding:2rem 1.5rem;max-width:860px;width:100%}
+.hero-badge{display:inline-block;border:1px solid var(--border-neon);background:var(--glass);color:var(--neon);font-family:var(--font-d);font-size:0.55rem;letter-spacing:4px;padding:0.4rem 1.2rem;margin-bottom:2rem;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);animation:pglow 3s ease-in-out infinite}
+@keyframes pglow{0%,100%{box-shadow:0 0 0 rgba(0,255,209,0)}50%{box-shadow:0 0 24px rgba(0,255,209,0.18)}}
+.hero-title{font-family:var(--font-d);font-size:clamp(2.8rem,10vw,6rem);font-weight:900;line-height:0.95;text-transform:uppercase;background:linear-gradient(135deg,#fff 0%,var(--neon) 55%,var(--neon2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 30px rgba(0,255,209,0.25));margin-bottom:0.5rem}
+.hero-sub{font-family:var(--font-d);font-size:clamp(0.7rem,2.5vw,1.1rem);color:var(--muted);letter-spacing:8px;margin-bottom:1.5rem}
+.hero-desc{font-size:clamp(0.88rem,2vw,1rem);color:var(--muted);line-height:1.85;max-width:480px;margin:0 auto 2.5rem}
+.hero-cta{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:3.5rem}
+.btn-p{display:inline-flex;align-items:center;gap:8px;background:var(--neon);color:var(--dark);border:none;padding:0.85rem 2rem;font-family:var(--font-d);font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-decoration:none;cursor:pointer;transition:all 0.3s;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%)}
+.btn-p:hover{box-shadow:0 0 40px rgba(0,255,209,0.45);transform:translateY(-2px)}
+.btn-s{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--neon2);border:1px solid rgba(123,97,255,0.45);padding:0.85rem 2rem;font-family:var(--font-d);font-size:0.65rem;font-weight:600;letter-spacing:2.5px;text-decoration:none;cursor:pointer;transition:all 0.3s;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%)}
+.btn-s:hover{background:rgba(123,97,255,0.12)}
+.hero-stats{display:flex;justify-content:center;gap:clamp(1.5rem,5vw,4rem);flex-wrap:wrap}
+.stat{text-align:center}
+.stat-num{font-family:var(--font-d);font-size:clamp(1.4rem,4vw,2rem);font-weight:700;color:var(--neon);text-shadow:0 0 20px rgba(0,255,209,0.35)}
+.stat-label{font-size:0.6rem;color:var(--muted);letter-spacing:3px;margin-top:4px;text-transform:uppercase}
+.particle{position:absolute;border-radius:50%;pointer-events:none;animation:fup linear infinite}
+@keyframes fup{0%{transform:translateY(80px) scale(0);opacity:0}10%{opacity:0.8}90%{opacity:0.8}100%{transform:translateY(-120px) scale(1);opacity:0}}
+
+/* SECTIONS */
+section{position:relative;z-index:2;padding:5rem 1.5rem}
+.section-header{text-align:center;margin-bottom:3.5rem}
+.section-tag{font-family:var(--font-d);font-size:0.55rem;letter-spacing:4px;color:var(--neon);text-transform:uppercase;display:block;margin-bottom:0.8rem}
+.section-title{font-family:var(--font-d);font-size:clamp(1.2rem,3.5vw,2rem);font-weight:700;color:var(--text);text-transform:uppercase}
+.section-line{width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent);margin:1rem auto 0}
+
+/* DETAILS STRIP */
+#details{padding:2.5rem 2rem;background:var(--dark2);border-top:1px solid var(--border-neon);border-bottom:1px solid var(--border-neon);position:relative;z-index:2}
+.details-grid{display:flex;justify-content:center;gap:clamp(1.5rem,4vw,4rem);flex-wrap:wrap;max-width:900px;margin:0 auto}
+.detail-item{display:flex;align-items:center;gap:0.8rem;flex:1 1 160px;min-width:130px;max-width:220px}
+.detail-icon{width:40px;height:40px;border:1px solid var(--border-neon);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
+.detail-label{font-size:0.58rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.detail-val{font-family:var(--font-d);font-size:0.72rem;font-weight:600;color:var(--text);margin-top:2px}
+
+/* HIGHLIGHTS */
+#highlights{background:linear-gradient(180deg,var(--dark) 0%,var(--dark2) 100%)}
+.highlights-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.2rem;max-width:1100px;margin:0 auto}
+.h-card{background:var(--glass2);border:1px solid var(--border-neon2);padding:1.8rem 1.5rem;position:relative;overflow:hidden;transition:all 0.4s;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.h-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent);opacity:0;transition:opacity 0.4s}
+.h-card:hover{transform:translateY(-5px);border-color:var(--border-neon);background:rgba(0,255,209,0.05);box-shadow:0 20px 50px rgba(0,255,209,0.08)}
+.h-card:hover::before{opacity:1}
+.h-num{position:absolute;top:1rem;right:1.2rem;font-family:var(--font-d);font-size:2.2rem;font-weight:900;color:rgba(0,255,209,0.05)}
+.h-icon{font-size:2.2rem;margin-bottom:0.8rem;filter:drop-shadow(0 0 8px rgba(0,255,209,0.3))}
+.h-title{font-family:var(--font-d);font-size:0.75rem;font-weight:700;color:var(--neon);letter-spacing:2px;margin-bottom:0.6rem;text-transform:uppercase}
+.h-desc{font-size:0.84rem;color:var(--muted);line-height:1.75}
+
+/* ITINERARY */
+#itinerary{background:var(--dark)}
+.timeline{max-width:700px;margin:0 auto;position:relative}
+.timeline::before{content:'';position:absolute;left:20px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,var(--neon),var(--neon2),transparent);opacity:0.3}
+@media(min-width:600px){.timeline::before{left:50%;transform:translateX(-50%)}}
+.t-item{display:flex;gap:1.5rem;margin-bottom:2rem;padding-left:52px;position:relative}
+@media(min-width:600px){.t-item{padding-left:0;justify-content:flex-end;width:50%}.t-item:nth-child(even){margin-left:50%;justify-content:flex-start;padding-left:2rem}.t-item:nth-child(odd){padding-right:2rem}}
+.t-dot{position:absolute;left:12px;top:8px;width:16px;height:16px;border-radius:50%;border:2px solid var(--neon);background:var(--dark);box-shadow:0 0 10px rgba(0,255,209,0.4)}
+@media(min-width:600px){.t-dot{left:auto;right:-8px}.t-item:nth-child(even) .t-dot{right:auto;left:-8px}}
+.t-card{background:var(--glass2);border:1px solid var(--border-neon2);padding:1rem 1.3rem;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));flex:1;max-width:280px}
+.t-time{font-family:var(--font-d);font-size:0.55rem;letter-spacing:3px;color:var(--neon);margin-bottom:4px}
+.t-title{font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:4px}
+.t-desc{font-size:0.78rem;color:var(--muted);line-height:1.6}
+
+/* GALLERY */
+#gallery{background:linear-gradient(180deg,var(--dark) 0%,var(--dark2) 50%,var(--dark) 100%)}
+.gallery-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;max-width:1000px;margin:0 auto}
+@media(min-width:600px){.gallery-grid{grid-template-columns:2fr 1fr 1fr;grid-template-rows:220px 180px}.gallery-grid .g-item:first-child{grid-row:span 2}}
+.g-item{position:relative;overflow:hidden;background:var(--dark3);border:1px solid var(--border-neon);min-height:140px;transition:all 0.4s}
+.g-item:hover{border-color:var(--neon);box-shadow:0 0 24px rgba(0,255,209,0.12)}
+.g-scene{width:100%;height:100%;min-height:140px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0.4rem;transition:transform 0.5s;padding:1rem}
+.g-item:hover .g-scene{transform:scale(1.04)}
+.g-emoji{font-size:2.5rem;filter:drop-shadow(0 0 12px rgba(0,255,209,0.4))}
+.g-lbl{font-family:var(--font-d);font-size:0.5rem;letter-spacing:3px;color:var(--neon);text-transform:uppercase;text-align:center}
+.g-ov{position:absolute;inset:0;background:linear-gradient(0deg,rgba(4,13,18,0.85) 0%,transparent 55%);display:flex;align-items:flex-end;padding:0.75rem}
+.g-ov span{font-size:0.68rem;font-family:var(--font-d);color:var(--text);letter-spacing:2px;text-transform:uppercase}
+
+/* FAQ */
+#faq{background:var(--dark2)}
+.faq-wrap{max-width:740px;margin:0 auto}
+.faq-item{border:1px solid var(--border-neon);margin-bottom:0.8rem;background:var(--glass);clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.faq-q{padding:1.1rem 1.3rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:1rem;font-family:var(--font-d);font-size:0.68rem;letter-spacing:1.5px;color:var(--text);text-transform:uppercase;transition:color 0.3s}
+.faq-q:hover{color:var(--neon)}
+.faq-icon{width:20px;height:20px;flex-shrink:0;border:1px solid var(--border-neon);display:flex;align-items:center;justify-content:center;color:var(--neon);transition:transform 0.3s}
+.faq-item.open .faq-icon{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height 0.45s ease,padding 0.3s;padding:0 1.3rem}
+.faq-item.open .faq-a{max-height:200px;padding-bottom:1.1rem}
+.faq-a p{font-size:0.86rem;color:var(--muted);line-height:1.8}
+
+/* BOOKING */
+#booking{background:linear-gradient(180deg,var(--dark) 0%,var(--dark2) 100%)}
+.booking-wrap{max-width:680px;margin:0 auto;background:var(--glass);border:1px solid var(--border-neon);padding:clamp(1.5rem,5vw,2.8rem);clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));position:relative;overflow:hidden}
+.booking-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent)}
+.booking-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon2),transparent)}
+.bk-price{text-align:center;margin-bottom:2rem;padding-bottom:1.8rem;border-bottom:1px solid var(--border-neon)}
+.bk-eyebrow{font-family:var(--font-d);font-size:0.55rem;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:0.5rem}
+.bk-price-val{font-family:var(--font-d);font-size:clamp(2rem,6vw,3rem);font-weight:900;color:var(--neon);text-shadow:0 0 28px rgba(0,255,209,0.35)}
+.bk-price-val sub{font-size:0.9rem;color:var(--muted);font-weight:400;vertical-align:middle}
+.bk-note{font-size:0.75rem;color:var(--muted);margin-top:0.5rem}
+.seats-left{font-family:var(--font-d);font-size:0.6rem;letter-spacing:2px;color:var(--neon3);margin-top:0.4rem}
+
+/* PAYMENT INFO BOX */
+.payment-info-box{background:rgba(0,255,209,0.04);border:1px solid var(--border-neon);padding:1.2rem;margin-bottom:1.2rem;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+.payment-info-title{font-family:var(--font-d);font-size:0.6rem;letter-spacing:3px;color:var(--neon);margin-bottom:0.7rem;text-transform:uppercase}
+.payment-info-row{font-size:0.82rem;color:var(--muted);margin-bottom:0.3rem;line-height:1.6}
+.payment-info-row strong{color:var(--text)}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.9rem;margin-bottom:0.9rem}
+@media(max-width:520px){.form-grid{grid-template-columns:1fr}}
+.form-group{display:flex;flex-direction:column;gap:0.35rem}
+.form-group.full{grid-column:span 2}
+@media(max-width:520px){.form-group.full{grid-column:span 1}}
+.form-label{font-family:var(--font-d);font-size:0.5rem;letter-spacing:3px;color:var(--neon);text-transform:uppercase}
+.form-input,.form-select,.form-textarea{background:rgba(0,0,0,0.45);border:1px solid var(--border-neon);color:var(--text);padding:0.7rem 0.9rem;font-family:var(--font-b);font-size:0.88rem;outline:none;transition:border-color 0.3s,box-shadow 0.3s;width:100%;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);-webkit-appearance:none}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--muted)}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--neon);box-shadow:0 0 16px rgba(0,255,209,0.1)}
+.form-select{background-color:rgba(4,13,18,0.95);cursor:pointer}
+.form-select option{background:var(--dark2);color:var(--text)}
+.form-textarea{resize:none;height:80px;font-size:0.85rem}
+
+/* FILE UPLOAD */
+.file-upload-area{border:1px dashed var(--border-neon);background:rgba(0,255,209,0.03);padding:1.5rem;text-align:center;cursor:pointer;transition:all 0.3s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);position:relative}
+.file-upload-area:hover{border-color:var(--neon);background:rgba(0,255,209,0.07)}
+.file-upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:1.8rem;margin-bottom:0.5rem}
+.upload-text{font-size:0.82rem;color:var(--muted)}
+.upload-text strong{color:var(--neon)}
+.upload-preview{margin-top:0.8rem;display:none}
+.upload-preview img{max-width:120px;max-height:80px;border:1px solid var(--border-neon);object-fit:cover}
+.upload-filename{font-size:0.75rem;color:var(--neon);margin-top:4px}
+
+.form-submit{width:100%;margin-top:1.3rem;background:linear-gradient(135deg,var(--neon),#00c4a7);color:var(--dark);border:none;padding:1rem;font-family:var(--font-d);font-size:0.72rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:all 0.3s;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);text-transform:uppercase}
+.form-submit:hover{box-shadow:0 0 40px rgba(0,255,209,0.38);transform:translateY(-2px)}
+.form-submit:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+.form-note{text-align:center;margin-top:1rem;font-size:0.73rem;color:var(--muted)}
+.closed-banner{text-align:center;padding:2rem;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+.closed-banner p{font-family:var(--font-d);font-size:0.8rem;color:var(--neon3);letter-spacing:2px}
+
+/* STATUS CHECK */
+#status-check{background:var(--dark)}
+.status-wrap{max-width:580px;margin:0 auto}
+.status-box{background:var(--glass);border:1px solid var(--border-neon);padding:2rem;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));position:relative}
+.status-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent)}
+.status-search{display:flex;gap:0.6rem}
+.status-search input{flex:1;background:rgba(0,0,0,0.45);border:1px solid var(--border-neon);color:var(--text);padding:0.75rem 1rem;font-family:var(--font-b);font-size:0.9rem;outline:none;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);transition:border-color 0.3s}
+.status-search input:focus{border-color:var(--neon)}
+.status-search input::placeholder{color:var(--muted)}
+.status-btn{background:var(--neon);color:var(--dark);border:none;padding:0.75rem 1.5rem;font-family:var(--font-d);font-size:0.62rem;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.3s;clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%);flex-shrink:0}
+.status-btn:hover{box-shadow:0 0 20px rgba(0,255,209,0.3)}
+.status-result{margin-top:1.5rem;display:none}
+.status-card{background:var(--dark2);border:1px solid var(--border-neon);padding:1.5rem;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+.status-row{display:flex;padding:0.5rem 0;border-bottom:1px solid rgba(0,255,209,0.06);gap:1rem}
+.status-row:last-child{border-bottom:none}
+.status-key{font-family:var(--font-d);font-size:0.5rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;min-width:110px;padding-top:2px}
+.status-val{font-size:0.85rem;color:var(--text)}
+.status-badge{display:inline-block;padding:3px 10px;font-family:var(--font-d);font-size:0.5rem;letter-spacing:2px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
+.status-badge.pending{background:rgba(255,184,0,0.15);color:#FFB800}
+.status-badge.confirmed{background:rgba(0,255,209,0.12);color:var(--neon)}
+.status-badge.cancelled{background:rgba(255,107,107,0.12);color:var(--neon3)}
+.status-badge.approved{background:rgba(0,255,209,0.12);color:var(--neon)}
+.status-badge.rejected{background:rgba(255,107,107,0.12);color:var(--neon3)}
+.status-badge.slip_uploaded{background:rgba(255,184,0,0.12);color:#FFB800}
+.status-badge.unpaid{background:rgba(255,107,107,0.08);color:var(--neon3)}
+.status-qr{text-align:center;margin-top:1rem;padding:1rem;background:rgba(0,0,0,0.3);border:1px solid var(--border-neon)}
+.status-qr img{width:140px;height:140px;background:#fff;padding:8px;border-radius:2px}
+.status-qr p{font-size:0.7rem;color:var(--muted);margin-top:0.5rem;letter-spacing:2px;font-family:var(--font-d)}
+.seat-info{background:rgba(0,255,209,0.05);border:1px solid var(--border-neon);padding:0.8rem;margin-top:0.8rem;text-align:center}
+.seat-num-big{font-family:var(--font-d);font-size:1.8rem;font-weight:900;color:var(--neon);letter-spacing:4px}
+.seat-label-small{font-size:0.6rem;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+
+/* FOOTER */
+footer{position:relative;z-index:2;background:var(--dark2);border-top:1px solid var(--border-neon);padding:2.5rem 2rem}
+.footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:2rem;align-items:start}
+@media(max-width:680px){.footer-inner{grid-template-columns:1fr;text-align:center}}
+.footer-logo-wrap{display:flex;align-items:center;gap:0.7rem;margin-bottom:0.6rem}
+@media(max-width:680px){.footer-logo-wrap{justify-content:center}}
+.footer-logo-img{width:32px;height:32px;object-fit:contain}
+.footer-logo-text{font-family:var(--font-d);font-weight:900;font-size:1.2rem;color:var(--neon);letter-spacing:4px;text-shadow:0 0 14px rgba(0,255,209,0.3)}
+.footer-tagline{font-size:0.75rem;color:var(--muted);line-height:1.6}
+.footer-nav{list-style:none;display:flex;flex-direction:column;gap:0.6rem}
+@media(max-width:680px){.footer-nav{flex-direction:row;justify-content:center;flex-wrap:wrap;gap:1rem}}
+.footer-nav a{font-size:0.72rem;color:var(--muted);text-decoration:none;letter-spacing:2px;text-transform:uppercase;transition:color 0.3s}
+.footer-nav a:hover{color:var(--neon)}
+.footer-contact{font-size:0.78rem;color:var(--muted);line-height:1.9}
+.footer-contact strong{color:var(--text);display:block;font-family:var(--font-d);font-size:0.6rem;letter-spacing:2px;margin-bottom:0.4rem}
+.footer-bottom{text-align:center;margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(0,255,209,0.08);font-size:0.68rem;color:var(--muted);letter-spacing:2px}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(4,13,18,0.96);display:none;align-items:center;justify-content:center;z-index:500;padding:1rem}
+.modal-bg.open{display:flex}
+.modal-box{background:var(--dark2);border:1px solid var(--neon);padding:2.5rem 2rem;text-align:center;max-width:420px;width:100%;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));animation:min 0.4s cubic-bezier(0.16,1,0.3,1);position:relative}
+.modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent)}
+@keyframes min{from{transform:scale(0.85) translateY(20px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.modal-icon{font-size:3rem;margin-bottom:0.8rem}
+.modal-title{font-family:var(--font-d);font-size:1rem;color:var(--neon);margin-bottom:0.5rem;letter-spacing:2px}
+.modal-ref{font-family:var(--font-d);font-size:1.1rem;color:var(--neon);margin-bottom:0.5rem}
+.modal-text{font-size:0.85rem;color:var(--muted);line-height:1.8;margin-bottom:1.5rem}
+.modal-close{background:var(--neon);color:var(--dark);border:none;padding:0.7rem 2.2rem;font-family:var(--font-d);font-size:0.65rem;letter-spacing:2px;cursor:pointer;transition:all 0.3s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1),transform 0.8s cubic-bezier(0.16,1,0.3,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+#btt{position:fixed;bottom:1.5rem;right:1.5rem;width:42px;height:42px;background:var(--dark2);border:1px solid var(--border-neon);color:var(--neon);font-size:1.1rem;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:100;transition:all 0.3s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
+#btt.show{display:flex}
+#btt:hover{background:var(--neon);color:var(--dark)}
+@media(max-width:860px){.nav-links{display:none}.hamburger{display:flex}.nav-btn{display:none}}
+@media(max-width:500px){nav{padding:0.8rem 1rem}}
+</style>
+</head>
+<body>
+<div class="cursor" id="cur"></div>
+<div class="cursor-ring" id="ring"></div>
+<div class="grid-bg"></div>
+<div class="scan-line"></div>
+
+<nav>
+  <div class="nav-logo">
+    <div class="logo-placeholder" id="nav-logo-img">PEAK</div>
+    <div class="logo-text">PEAK<span>ADVENTURES</span></div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#highlights">Highlights</a></li>
+    <li><a href="#itinerary">Itinerary</a></li>
+    <li><a href="#gallery">Gallery</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#booking">Book Now</a></li>
+    <li><a href="#status-check">My Status</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="nav-btn secondary" onclick="document.getElementById('status-check').scrollIntoView({behavior:'smooth'})">CHECK STATUS</button>
+    <button class="nav-btn" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">⟢ BOOK NOW</button>
+  </div>
+  <button class="hamburger" id="ham"><span></span><span></span><span></span></button>
+</nav>
+<div class="mobile-menu" id="mob-menu">
+  <a href="#highlights" onclick="closeMob()">Highlights</a>
+  <a href="#itinerary" onclick="closeMob()">Itinerary</a>
+  <a href="#gallery" onclick="closeMob()">Gallery</a>
+  <a href="#faq" onclick="closeMob()">FAQ</a>
+  <a href="#status-check" onclick="closeMob()">Check My Status</a>
+  <div class="mob-cta-row">
+    <button class="mob-btn outline" onclick="closeMob();document.getElementById('status-check').scrollIntoView({behavior:'smooth'})">CHECK STATUS</button>
+    <button class="mob-btn primary" onclick="closeMob();document.getElementById('booking').scrollIntoView({behavior:'smooth'})">⟢ BOOK NOW</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="mt-far"></div><div class="mt-mid"></div><div class="mt-near"></div>
+  <div class="hero-content">
+    <div class="hero-badge">◈ PEAK ADVENTURES · DAY EXPEDITION ◈</div>
+    <h1 class="hero-title">Nuwara<br>Eliya</h1>
+    <p class="hero-sub">SRI LANKA · 1,868M ALTITUDE</p>
+    <p class="hero-desc">Journey to the misty highlands of Sri Lanka. Tea estates, pristine lakes, and cloud-kissed peaks await. One extraordinary day. Infinite memories.</p>
+    <div class="hero-cta">
+      <a href="#booking" class="btn-p">⟢ BOOK YOUR SEAT</a>
+      <a href="#highlights" class="btn-s">DISCOVER MORE</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-num">1</div><div class="stat-label">Day Trip</div></div>
+      <div class="stat"><div class="stat-num">3+</div><div class="stat-label">Destinations</div></div>
+      <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Curated</div></div>
+      <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Memories</div></div>
+    </div>
+  </div>
+</section>
+
+<div id="details">
+  <div class="details-grid">
+    <div class="detail-item"><div class="detail-icon">📅</div><div><div class="detail-label">Date</div><div class="detail-val" id="cfg-date">TBA</div></div></div>
+    <div class="detail-item"><div class="detail-icon">🚌</div><div><div class="detail-label">Transport</div><div class="detail-val">AC Coach Provided</div></div></div>
+    <div class="detail-item"><div class="detail-icon">🏔️</div><div><div class="detail-label">Altitude</div><div class="detail-val">1,868m ASL</div></div></div>
+    <div class="detail-item"><div class="detail-icon">🎟️</div><div><div class="detail-label">Price</div><div class="detail-val" id="cfg-price">TBA</div></div></div>
+  </div>
+</div>
+
+<section id="highlights">
+  <div class="section-header reveal"><span class="section-tag">◈ Destinations</span><h2 class="section-title">Trip Highlights</h2><div class="section-line"></div></div>
+  <div class="highlights-grid">
+    <div class="h-card reveal"><div class="h-num">01</div><div class="h-icon">🏔️</div><div class="h-title">Horton Plains</div><p class="h-desc">Stand at the edge of the world. World's End drops 870m into mist-veiled valleys — a once-in-a-lifetime encounter with Sri Lanka's wild interior.</p></div>
+    <div class="h-card reveal"><div class="h-num">02</div><div class="h-icon">🌊</div><div class="h-title">Gregory Lake</div><p class="h-desc">Glide across the glassy surface of this colonial-era reservoir. Surrounded by manicured gardens and cool mountain air at 1,868m.</p></div>
+    <div class="h-card reveal"><div class="h-num">03</div><div class="h-icon">🍃</div><div class="h-title">Tea Estates</div><p class="h-desc">Walk through endless emerald terraces. Witness the art of Ceylon tea-making and taste the finest brew at its very source.</p></div>
+    <div class="h-card reveal"><div class="h-num">04</div><div class="h-icon">🌿</div><div class="h-title">Highland Air</div><p class="h-desc">Breathe the freshest air in Sri Lanka at nearly 1,900m. Cool misty mornings, rich greenery and panoramic highland vistas.</p></div>
+  </div>
+</section>
+
+<section id="itinerary">
+  <div class="section-header reveal"><span class="section-tag">◈ Schedule</span><h2 class="section-title">Day Itinerary</h2><div class="section-line"></div></div>
+  <div class="timeline">
+    <div class="t-item reveal"><div class="t-dot"></div><div class="t-card"><div class="t-time">05:00 AM</div><div class="t-title">Departure</div><div class="t-desc">Board the AC coach. Refreshments served on departure.</div></div></div>
+    <div class="t-item reveal"><div class="t-dot"></div><div class="t-card"><div class="t-time">08:30 AM</div><div class="t-title">Horton Plains</div><div class="t-desc">Trek to World's End — 870m escarpment shrouded in mist.</div></div></div>
+    <div class="t-item reveal"><div class="t-dot"></div><div class="t-card"><div class="t-time">12:00 PM</div><div class="t-title">Lunch Break</div><div class="t-desc">Meal at a scenic highland restaurant. Veg & non-veg available.</div></div></div>
+    <div class="t-item reveal"><div class="t-dot"></div><div class="t-card"><div class="t-time">01:30 PM</div><div class="t-title">Tea Estate</div><div class="t-desc">Guided tour + tea tasting session in the heart of Ceylon's tea country.</div></div></div>
+    <div class="t-item reveal"><div class="t-dot"></div><div class="t-card"><div class="t-time">03:30 PM</div><div class="t-title">Gregory Lake</div><div class="t-desc">Free time at the lakeside. Optional boat rides and photography.</div></div></div>
+    <div class="t-item reveal"><div class="t-dot"></div><div class="t-card"><div class="t-time">05:30 PM</div><div class="t-title">Return Journey</div><div class="t-desc">Depart Nuwara Eliya. Estimated arrival back at 9:00 PM.</div></div></div>
+  </div>
+</section>
+
+<section id="gallery">
+  <div class="section-header reveal"><span class="section-tag">◈ Visual Journey</span><h2 class="section-title">Explore the Highlands</h2><div class="section-line"></div></div>
+  <div class="gallery-grid">
+    <div class="g-item reveal"><div class="g-scene" style="background:linear-gradient(135deg,#040D12,#0D2233,#082a1a)"><div class="g-emoji">🏔️</div><div class="g-lbl">World's End · 870m</div></div><div class="g-ov"><span>Horton Plains</span></div></div>
+    <div class="g-item reveal"><div class="g-scene" style="background:linear-gradient(135deg,#040D12,#0a1a2e)"><div class="g-emoji">🏞️</div><div class="g-lbl">Gregory Lake</div></div><div class="g-ov"><span>Lakeside Views</span></div></div>
+    <div class="g-item reveal"><div class="g-scene" style="background:linear-gradient(135deg,#040D12,#0a2010)"><div class="g-emoji">🍃</div><div class="g-lbl">Tea Estates</div></div><div class="g-ov"><span>Ceylon Tea</span></div></div>
+    <div class="g-item reveal"><div class="g-scene" style="background:linear-gradient(135deg,#040D12,#1a1020)"><div class="g-emoji">🌄</div><div class="g-lbl">Sunrise</div></div><div class="g-ov"><span>Golden Hour</span></div></div>
+    <div class="g-item reveal"><div class="g-scene" style="background:linear-gradient(135deg,#040D12,#101a0a)"><div class="g-emoji">🌿</div><div class="g-lbl">Lush Greenery</div></div><div class="g-ov"><span>Nature Walks</span></div></div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="section-header reveal"><span class="section-tag">◈ Information</span><h2 class="section-title">Frequently Asked Questions</h2><div class="section-line"></div></div>
+  <div class="faq-wrap">
+    <div class="faq-item reveal"><div class="faq-q">What is included in the trip?<span class="faq-icon">+</span></div><div class="faq-a"><p>Transport via AC coach, guided tours at all destinations, and entrance fees. Meals are at your own expense unless specified.</p></div></div>
+    <div class="faq-item reveal"><div class="faq-q">What should I wear and bring?<span class="faq-icon">+</span></div><div class="faq-a"><p>Warm clothing (10–15°C mornings), comfortable walking shoes, a light rain jacket, sunscreen, and your National ID or passport.</p></div></div>
+    <div class="faq-item reveal"><div class="faq-q">How does the payment and booking work?<span class="faq-icon">+</span></div><div class="faq-a"><p>Submit the booking form, then make your payment via bank transfer and upload your payment slip. Once approved, you'll receive a QR code confirmation email.</p></div></div>
+    <div class="faq-item reveal"><div class="faq-q">Is the trip suitable for all age groups?<span class="faq-icon">+</span></div><div class="faq-a"><p>Designed for all ages. Horton Plains involves moderate walking. Comfortable footwear recommended.</p></div></div>
+    <div class="faq-item reveal"><div class="faq-q">What is the cancellation policy?<span class="faq-icon">+</span></div><div class="faq-a"><p>7+ days prior: full refund. Within 7 days: 50% refund. Within 48 hours: no refund.</p></div></div>
+    <div class="faq-item reveal"><div class="faq-q">Who is organizing this trip?<span class="faq-icon">+</span></div><div class="faq-a"><p>This expedition is proudly organized by PEAK Adventures — a passionate youth organization dedicated to extraordinary adventures across Sri Lanka.</p></div></div>
+  </div>
+</section>
+
+<!-- BOOKING FORM -->
+<section id="booking">
+  <div class="section-header reveal"><span class="section-tag">◈ Secure Your Seat</span><h2 class="section-title">Book Your Expedition</h2><div class="section-line"></div></div>
+  <div class="booking-wrap reveal" id="booking-form-wrap">
+    <div class="bk-price">
+      <p class="bk-eyebrow">Ticket Price Per Person</p>
+      <div class="bk-price-val" id="disp-price">LKR <sub>—,———</sub></div>
+      <p class="bk-note">⚡ Limited seats available</p>
+      <p class="seats-left" id="seats-left-disp"></p>
+    </div>
+    <div class="payment-info-box" id="payment-info-box" style="display:none">
+      <div class="payment-info-title">Payment Details</div>
+      <div class="payment-info-row">Bank: <strong id="pi-bank">—</strong></div>
+      <div class="payment-info-row">Account No: <strong id="pi-acc">—</strong></div>
+      <div class="payment-info-row">Branch: <strong id="pi-branch">—</strong></div>
+      <div class="payment-info-row" style="margin-top:0.5rem;font-size:0.75rem;color:rgba(122,155,173,0.7)">Transfer the exact amount and upload your slip below</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="f-fname" type="text" placeholder="First name" autocomplete="given-name"></div>
+      <div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" id="f-lname" type="text" placeholder="Last name" autocomplete="family-name"></div>
+      <div class="form-group"><label class="form-label">Email Address *</label><input class="form-input" id="f-email" type="email" placeholder="your@email.com" autocomplete="email"></div>
+      <div class="form-group"><label class="form-label">Phone Number *</label><input class="form-input" id="f-phone" type="tel" placeholder="+94 XX XXX XXXX" autocomplete="tel"></div>
+      <div class="form-group"><label class="form-label">No. of Seats *</label><select class="form-select" id="f-seats"><option value="">Select seats</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6+</option></select></div>
+      <div class="form-group"><label class="form-label">City / District *</label><input class="form-input" id="f-city" type="text" placeholder="e.g. Kandy"></div>
+      <div class="form-group"><label class="form-label">Age Group *</label><select class="form-select" id="f-age"><option value="">Select</option><option value="under-18">Under 18</option><option value="18-25">18–25</option><option value="26-35">26–35</option><option value="36-50">36–50</option><option value="50+">50+</option></select></div>
+      <div class="form-group"><label class="form-label">How did you hear about us?</label><select class="form-select" id="f-ref"><option value="">Select</option><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="friend">Friend</option><option value="whatsapp">WhatsApp</option><option value="other">Other</option></select></div>
+      <div class="form-group full"><label class="form-label">Special Requirements</label><textarea class="form-textarea" id="f-notes" placeholder="Dietary, medical, accessibility needs..."></textarea></div>
+      <div class="form-group full">
+        <label class="form-label">Payment Slip *</label>
+        <div class="file-upload-area" id="upload-area">
+          <input type="file" id="f-slip" accept="image/*,.pdf" onchange="previewSlip(this)">
+          <div class="upload-icon">📎</div>
+          <div class="upload-text">Click or drag to upload payment slip<br><strong>JPG, PNG or PDF</strong></div>
+          <div class="upload-preview" id="upload-preview">
+            <img id="preview-img" src="" alt="Preview">
+            <div class="upload-filename" id="upload-filename"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="form-submit" id="submit-btn" onclick="submitForm()">⟢ SUBMIT BOOKING + PAYMENT SLIP</button>
+    <p class="form-note">🔒 Secure. Our admin reviews your slip and contacts you within 24 hours.</p>
+  </div>
+</section>
+
+<!-- STATUS CHECK -->
+<section id="status-check">
+  <div class="section-header reveal"><span class="section-tag">◈ Track Your Booking</span><h2 class="section-title">Check Booking Status</h2><div class="section-line"></div></div>
+  <div class="status-wrap reveal">
+    <div class="status-box">
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.7">Enter your email address or booking reference to check your booking status, payment approval, and seat assignment.</p>
+      <div class="status-search">
+        <input type="text" id="status-input" placeholder="Email or booking ref (PEAK-XXXXXX)" onkeydown="if(event.key==='Enter')checkStatus()">
+        <button class="status-btn" onclick="checkStatus()">CHECK</button>
+      </div>
+      <div class="status-result" id="status-result"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo-wrap">
+        <div class="logo-placeholder footer-logo-img">P</div>
+        <div class="footer-logo-text">PEAK</div>
+      </div>
+      <p class="footer-tagline">Crafting extraordinary adventures<br>across Sri Lanka's finest landscapes.</p>
+    </div>
+    <div><ul class="footer-nav"><li><a href="#highlights">Highlights</a></li><li><a href="#itinerary">Itinerary</a></li><li><a href="#gallery">Gallery</a></li><li><a href="#faq">FAQ</a></li><li><a href="#booking">Book Now</a></li><li><a href="#status-check">My Status</a></li><li><a href="admin.html">Admin</a></li></ul></div>
+    <div><p class="footer-contact"><strong>Contact PEAK</strong>Email: <span id="footer-email">gangasarajayawickrama@gmail.com</span><br>Location: Kandy, Sri Lanka</p></div>
+  </div>
+  <div class="footer-bottom">© 2025 PEAK Adventures · Nuwara Eliya Day Expedition · All Rights Reserved</div>
+</footer>
+
+<div class="modal-bg" id="modal">
+  <div class="modal-box">
+    <div class="modal-icon">✅</div>
+    <div class="modal-title">BOOKING & SLIP SUBMITTED</div>
+    <div class="modal-ref" id="modal-ref"></div>
+    <p class="modal-text">Your booking and payment slip have been submitted. Our admin will review your payment and send your QR confirmation email within <strong>24 hours</strong>.</p>
+    <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">CLOSE</button>
+  </div>
+</div>
+
+<button id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+const SB_URL='https://ehzxoapgandezbhuvjrd.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoenhvYXBnYW5kZXpiaHV2anJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NzE0NDcsImV4cCI6MjA5NjQ0NzQ0N30.aR68BbL-X3TQoQNAhTKXizT5UvupYzYc13-nHs6xgDY';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+
+// CURSOR
+const cur=document.getElementById('cur'),ring=document.getElementById('ring');
+let mx=0,my=0,rx=0,ry=0;
+if(window.matchMedia('(pointer:fine)').matches){
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
+  (function a(){rx+=(mx-rx)*0.1;ry+=(my-ry)*0.1;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(a)})();
+  document.querySelectorAll('a,button,.faq-q,.g-item').forEach(el=>{el.addEventListener('mouseenter',()=>cur.classList.add('hover'));el.addEventListener('mouseleave',()=>cur.classList.remove('hover'))});
+}
+const ham=document.getElementById('ham'),mob=document.getElementById('mob-menu');
+ham.addEventListener('click',()=>{ham.classList.toggle('open');mob.classList.toggle('open')});
+function closeMob(){ham.classList.remove('open');mob.classList.remove('open')}
+window.addEventListener('scroll',()=>document.getElementById('btt').classList.toggle('show',window.scrollY>400));
+const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:0.1,rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+const heroEl=document.getElementById('hero');
+function mkP(){const p=document.createElement('div');p.className='particle';const sz=Math.random()*3+1.5,dur=Math.random()*7+5;p.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;bottom:0;position:absolute;background:${Math.random()>0.5?'rgba(0,255,209,0.65)':'rgba(123,97,255,0.55)'};animation-duration:${dur}s;animation-delay:${Math.random()*4}s;`;heroEl.appendChild(p);setTimeout(()=>p.remove(),(dur+4)*1000)}
+setInterval(mkP,700);
+document.querySelectorAll('.faq-q').forEach(q=>{q.addEventListener('click',()=>{const item=q.closest('.faq-item'),open=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));if(!open)item.classList.add('open')})});
+
+// LOAD CONFIG
+async function loadConfig(){
+  try{
+    const{data}=await sb.from('trip_config').select('key,value');
+    if(!data)return;
+    const cfg={};data.forEach(r=>cfg[r.key]=r.value);
+    if(cfg.trip_date&&cfg.trip_date.trim()){const d=new Date(cfg.trip_date);document.getElementById('cfg-date').textContent=d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+    if(cfg.ticket_price&&cfg.ticket_price.trim()){const p=parseInt(cfg.ticket_price).toLocaleString('en-US');document.getElementById('cfg-price').textContent='LKR '+p;document.getElementById('disp-price').innerHTML='LKR <sub>'+p+'</sub>'}
+    if(cfg.bookings_open==='false'){document.getElementById('booking-form-wrap').innerHTML='<div class="closed-banner"><p>🔒 BOOKINGS CLOSED</p><p style="font-size:0.7rem;margin-top:0.5rem;color:var(--muted);font-family:var(--font-b)">All seats have been filled. Follow our social media for future events.</p></div>'}
+    if(cfg.bank_name||cfg.bank_account){
+      document.getElementById('pi-bank').textContent=cfg.bank_name||'—';
+      document.getElementById('pi-acc').textContent=cfg.bank_account||'—';
+      document.getElementById('pi-branch').textContent=cfg.bank_branch||'—';
+      document.getElementById('payment-info-box').style.display='block';
+    }
+    if(cfg.contact_email)document.getElementById('footer-email').textContent=cfg.contact_email;
+    // seats left
+    if(cfg.total_capacity){
+      const{data:bkd}=await sb.from('bookings').select('seats').neq('status','cancelled');
+      const used=(bkd||[]).reduce((s,r)=>s+(r.seats||0),0);
+      const left=parseInt(cfg.total_capacity)-used;
+      const el=document.getElementById('seats-left-disp');
+      if(left<=0)el.textContent='❌ Fully Booked';
+      else if(left<=10)el.textContent=`🔥 Only ${left} seat${left!==1?'s':''} remaining!`;
+    }
+  }catch(e){console.warn('Config error',e)}
+}
+loadConfig();
+
+// FILE PREVIEW
+function previewSlip(input){
+  const file=input.files[0];if(!file)return;
+  const prev=document.getElementById('upload-preview');
+  document.getElementById('upload-filename').textContent=file.name;
+  if(file.type.startsWith('image/')){
+    const reader=new FileReader();
+    reader.onload=e=>{document.getElementById('preview-img').src=e.target.result;document.getElementById('preview-img').style.display='block'};
+    reader.readAsDataURL(file);
+  } else {document.getElementById('preview-img').style.display='none'}
+  prev.style.display='block';
+}
+
+// GENERATE REF
+function genRef(){return'PEAK-'+Math.random().toString(36).substring(2,8).toUpperCase()}
+function genToken(){return'TKN-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).substring(2,8).toUpperCase()}
+
+// SUBMIT
+async function submitForm(){
+  const g=id=>document.getElementById(id)?.value?.trim();
+  const fname=g('f-fname'),lname=g('f-lname'),email=g('f-email'),phone=g('f-phone'),seats=g('f-seats'),city=g('f-city'),age=g('f-age');
+  const slipFile=document.getElementById('f-slip')?.files[0];
+  if(!fname||!lname||!email||!phone||!seats||!city||!age){alert('Please fill in all required fields.');return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert('Please enter a valid email address.');return}
+  if(!slipFile){alert('Please upload your payment slip.');return}
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=true;btn.textContent='UPLOADING...';
+  try{
+    const ref=genRef();const token=genToken();
+    // Upload slip
+    const ext=slipFile.name.split('.').pop();
+    const slipPath=`slips/${ref}.${ext}`;
+    const{error:upErr}=await sb.storage.from('payment-slips').upload(slipPath,slipFile);
+    if(upErr&&upErr.message!=='The resource already exists')throw upErr;
+    const slipUrl=`${SB_URL}/storage/v1/object/public/payment-slips/${slipPath}`;
+    // Insert booking
+    const booking={booking_ref:ref,name:fname+' '+lname,email,phone,seats:parseInt(seats)||1,city,age_group:age,ref_source:g('f-ref'),notes:g('f-notes'),status:'pending',payment_status:'slip_uploaded',payment_slip_url:slipUrl,qr_token:token};
+    const{error:dbErr}=await sb.from('bookings').insert([booking]);
+    if(dbErr)throw dbErr;
+    // Send emails
+    try{
+      await fetch(`${SB_URL}/functions/v1/send-qr-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify({type:'booking_received',booking})});
+      await fetch(`${SB_URL}/functions/v1/send-qr-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify({type:'admin_notify',booking})});
+    }catch(e){console.warn('Email error',e)}
+    // Clear
+    ['f-fname','f-lname','f-email','f-phone','f-seats','f-city','f-age','f-ref','f-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+    document.getElementById('f-slip').value='';
+    document.getElementById('upload-preview').style.display='none';
+    document.getElementById('modal-ref').textContent=ref;
+    document.getElementById('modal').classList.add('open');
+  }catch(err){alert('Something went wrong: '+err.message);console.error(err)}
+  finally{btn.disabled=false;btn.textContent='⟢ SUBMIT BOOKING + PAYMENT SLIP'}
+}
+
+// STATUS CHECK
+async function checkStatus(){
+  const q=document.getElementById('status-input').value.trim();
+  if(!q){alert('Enter your email or booking reference.');return}
+  const res=document.getElementById('status-result');
+  res.style.display='block';res.innerHTML='<div style="color:var(--muted);font-size:0.8rem;font-family:var(--font-d);letter-spacing:2px;padding:1rem 0">SEARCHING...</div>';
+  try{
+    let{data}=await sb.from('bookings').select('*').or(`email.eq.${q},booking_ref.eq.${q.toUpperCase()}`).limit(5);
+    if(!data||!data.length){res.innerHTML='<div style="color:var(--neon3);font-size:0.82rem;padding:1rem 0">No booking found. Check your email address or booking reference.</div>';return}
+    // Get seat assignments
+    const ids=data.map(b=>b.id);
+    const{data:seats}=await sb.from('seat_assignments').select('*,buses(name)').in('booking_id',ids);
+    res.innerHTML=data.map(b=>{
+      const bSeats=(seats||[]).filter(s=>s.booking_id===b.id);
+      const seatNums=bSeats.map(s=>`${s.bus_name||s.buses?.name||'Bus'} · Seat ${s.seat_number}`).join(', ');
+      const pBadge=`<span class="status-badge ${b.payment_status}">${b.payment_status.replace('_',' ').toUpperCase()}</span>`;
+      const sBadge=`<span class="status-badge ${b.status}">${b.status.toUpperCase()}</span>`;
+      const qrSection=b.payment_status==='approved'&&b.qr_token?`<div class="status-qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(b.qr_token)}&bgcolor=ffffff&margin=0" alt="QR"><p>YOUR CHECK-IN QR CODE</p></div>`:'';
+      const seatSection=seatNums?`<div class="seat-info"><div class="seat-label-small">Assigned Seat(s)</div><div class="seat-num-big">${bSeats.map(s=>s.seat_number).join(' · ')}</div><div class="seat-label-small" style="margin-top:4px">${bSeats.map(s=>s.buses?.name||'Bus').join(' · ')}</div></div>`:'';
+      const attendedSection=b.attended?`<div style="margin-top:0.6rem;background:rgba(0,255,209,0.08);border:1px solid var(--border-neon);padding:0.6rem;text-align:center;font-family:var(--font-d);font-size:0.62rem;letter-spacing:2px;color:var(--neon)">✅ ATTENDED · ${b.attended_at?new Date(b.attended_at).toLocaleString():'—'}</div>`:'';
+      return `<div class="status-card" style="margin-bottom:1rem">
+        <div class="status-row"><div class="status-key">Ref</div><div class="status-val" style="font-family:monospace;color:var(--neon)">${b.booking_ref}</div></div>
+        <div class="status-row"><div class="status-key">Name</div><div class="status-val">${b.name}</div></div>
+        <div class="status-row"><div class="status-key">Seats</div><div class="status-val">${b.seats}</div></div>
+        <div class="status-row"><div class="status-key">Booking</div><div class="status-val">${sBadge}</div></div>
+        <div class="status-row"><div class="status-key">Payment</div><div class="status-val">${pBadge}</div></div>
+        ${seatSection}${attendedSection}${qrSection}
+      </div>`;
+    }).join('');
+  }catch(e){res.innerHTML='<div style="color:var(--neon3);font-size:0.82rem">Error: '+e.message+'</div>'}
+}
+</script>
+</body>
+</html>

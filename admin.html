@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEAK Admin · Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --neon:#00FFD1;--neon2:#7B61FF;--neon3:#FF6B6B;--warn:#FFB800;
+  --dark:#040D12;--dark2:#081822;--dark3:#0D2233;
+  --card:rgba(13,34,51,0.85);
+  --border:rgba(0,255,209,0.18);
+  --text:#E8F4F8;--muted:#7A9BAD;
+  --fd:'Orbitron',monospace;--fb:'Space Grotesk',sans-serif;
+  --sw:240px;
+}
+html,body{height:100%;-webkit-tap-highlight-color:transparent}
+body{background:var(--dark);color:var(--text);font-family:var(--fb);overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,209,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,209,0.018) 1px,transparent 1px);background-size:50px 50px;pointer-events:none;z-index:0}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:1000;background:var(--dark);display:flex;align-items:center;justify-content:center;padding:1rem}
+.login-box{background:var(--dark2);border:1px solid var(--border);padding:2.5rem 2rem;width:100%;max-width:380px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));position:relative}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent)}
+.login-logo-row{display:flex;align-items:center;gap:0.7rem;margin-bottom:0.3rem}
+.login-logo-placeholder{width:38px;height:38px;background:rgba(0,255,209,0.1);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:0.6rem;color:var(--neon)}
+.login-logo-text{font-family:var(--fd);font-size:1.3rem;font-weight:900;color:var(--neon);letter-spacing:4px;text-shadow:0 0 14px rgba(0,255,209,0.3)}
+.login-subtitle{font-size:0.68rem;color:var(--muted);letter-spacing:3px;margin-bottom:2rem}
+.login-label{font-family:var(--fd);font-size:0.5rem;letter-spacing:3px;color:var(--neon);margin-bottom:0.35rem;display:block}
+.login-input{width:100%;background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);padding:0.7rem 0.9rem;font-family:var(--fb);font-size:0.88rem;outline:none;margin-bottom:0.9rem;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);transition:border-color 0.3s}
+.login-input:focus{border-color:var(--neon)}
+.login-btn{width:100%;background:var(--neon);color:var(--dark);border:none;padding:0.9rem;font-family:var(--fd);font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;transition:all 0.3s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)}
+.login-btn:hover{box-shadow:0 0 30px rgba(0,255,209,0.3)}
+.login-btn:disabled{opacity:0.6;cursor:not-allowed}
+.login-err{font-size:0.75rem;color:var(--neon3);margin-top:0.6rem;display:none;text-align:center}
+
+/* LAYOUT */
+#app{display:none;min-height:100vh;position:relative;z-index:1}
+#app.show{display:flex}
+.sidebar{width:var(--sw);min-width:var(--sw);background:rgba(8,24,34,0.97);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform 0.3s;overflow-y:auto}
+.sidebar-logo{padding:1.2rem 1rem 1rem;border-bottom:1px solid var(--border)}
+.sb-logo-row{display:flex;align-items:center;gap:0.6rem}
+.sb-logo-placeholder{width:32px;height:32px;background:rgba(0,255,209,0.1);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:0.55rem;color:var(--neon);flex-shrink:0}
+.sb-logo-img{width:32px;height:32px;object-fit:contain;flex-shrink:0}
+.s-logo{font-family:var(--fd);font-size:1rem;font-weight:900;color:var(--neon);letter-spacing:3px;text-shadow:0 0 10px rgba(0,255,209,0.25)}
+.s-logo-sub{font-size:0.45rem;color:var(--muted);letter-spacing:4px;margin-top:1px}
+.sidebar-nav{flex:1;padding:0.8rem 0}
+.nav-sec{font-family:var(--fd);font-size:0.42rem;letter-spacing:3px;color:rgba(122,155,173,0.4);padding:0.8rem 1.1rem 0.3rem;text-transform:uppercase}
+.s-item{display:flex;align-items:center;gap:0.65rem;padding:0.65rem 1.1rem;cursor:pointer;color:var(--muted);font-size:0.76rem;letter-spacing:0.5px;transition:all 0.22s;border-left:2px solid transparent;user-select:none;position:relative}
+.s-item:hover{color:var(--text);background:rgba(0,255,209,0.04)}
+.s-item.active{color:var(--neon);border-left-color:var(--neon);background:rgba(0,255,209,0.06)}
+.s-icon{font-size:0.95rem;width:17px;text-align:center;flex-shrink:0}
+.s-badge{position:absolute;right:1rem;background:var(--warn);color:#000;font-family:var(--fd);font-size:0.42rem;padding:2px 5px;border-radius:10px;font-weight:700}
+.sidebar-bottom{padding:0.9rem 1rem;border-top:1px solid var(--border)}
+.s-user{display:flex;align-items:center;gap:0.6rem}
+.s-av{width:30px;height:30px;border-radius:50%;background:rgba(0,255,209,0.12);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-family:var(--fd);color:var(--neon);flex-shrink:0}
+.s-uinfo{flex:1;min-width:0}
+.s-uname{font-size:0.75rem;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-urole{font-size:0.56rem;color:var(--muted);letter-spacing:1px}
+.s-logout{font-size:0.65rem;color:var(--neon3);cursor:pointer;background:none;border:none;font-family:var(--fb);white-space:nowrap}
+.s-logout:hover{text-decoration:underline}
+
+/* MAIN */
+.main{flex:1;margin-left:var(--sw);display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:rgba(4,13,18,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0.8rem 1.6rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:1rem;flex-wrap:wrap}
+.tb-left{display:flex;align-items:center;gap:0.8rem}
+.mob-tog{display:none;background:none;border:1px solid var(--border);color:var(--neon);padding:0.35rem 0.55rem;cursor:pointer;font-size:0.95rem}
+.page-title{font-family:var(--fd);font-size:0.8rem;font-weight:700;letter-spacing:2px;color:var(--text)}
+.rtdot{width:7px;height:7px;border-radius:50%;background:var(--neon);display:inline-block;margin-right:6px;animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.tb-right{display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap}
+.search-bar{background:rgba(0,0,0,0.35);border:1px solid var(--border);color:var(--text);padding:0.4rem 0.85rem;font-family:var(--fb);font-size:0.8rem;outline:none;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);width:190px;transition:border-color 0.3s}
+.search-bar::placeholder{color:var(--muted)}
+.search-bar:focus{border-color:var(--neon)}
+.tb-btn{background:transparent;border:1px solid var(--border);color:var(--neon);padding:0.4rem 0.9rem;font-family:var(--fd);font-size:0.52rem;letter-spacing:2px;cursor:pointer;transition:all 0.25s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);white-space:nowrap}
+.tb-btn:hover{background:rgba(0,255,209,0.1)}
+
+/* PAGES */
+.page{display:none;padding:1.8rem 1.6rem;flex:1}
+.page.active{display:block}
+
+/* METRICS */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.9rem;margin-bottom:1.8rem}
+.m-card{background:var(--card);border:1px solid var(--border);padding:1.1rem 0.9rem;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));position:relative;overflow:hidden;transition:border-color 0.3s}
+.m-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--mc,var(--neon));opacity:0.5}
+.m-card:hover{border-color:rgba(0,255,209,0.4)}
+.m-label{font-size:0.58rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:0.45rem}
+.m-val{font-family:var(--fd);font-size:1.7rem;font-weight:700;color:var(--mc,var(--neon))}
+.m-sub{font-size:0.64rem;color:var(--muted);margin-top:0.3rem}
+
+/* TABLE */
+.tbl-wrap{background:var(--card);border:1px solid var(--border);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));overflow:hidden;margin-bottom:1.5rem}
+.tbl-hdr{padding:0.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:0.8rem;flex-wrap:wrap}
+.tbl-title{font-family:var(--fd);font-size:0.68rem;letter-spacing:2px;color:var(--text)}
+.ftabs{display:flex;gap:0.35rem;flex-wrap:wrap}
+.ftab{background:none;border:1px solid var(--border);color:var(--muted);padding:0.28rem 0.75rem;font-family:var(--fd);font-size:0.48rem;letter-spacing:2px;cursor:pointer;transition:all 0.22s;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
+.ftab.active,.ftab:hover{background:rgba(0,255,209,0.1);color:var(--neon);border-color:rgba(0,255,209,0.3)}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;min-width:720px}
+thead th{padding:0.7rem 0.9rem;font-family:var(--fd);font-size:0.5rem;letter-spacing:2px;color:var(--muted);text-align:left;text-transform:uppercase;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.2);white-space:nowrap}
+tbody tr{border-bottom:1px solid rgba(0,255,209,0.05);transition:background 0.2s}
+tbody tr:hover{background:rgba(0,255,209,0.025)}
+tbody tr:last-child{border-bottom:none}
+td{padding:0.7rem 0.9rem;font-size:0.8rem;color:var(--text);white-space:nowrap}
+td.md{color:var(--muted);font-size:0.72rem}
+.badge{display:inline-block;padding:0.18rem 0.55rem;font-family:var(--fd);font-size:0.43rem;letter-spacing:1.5px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
+.badge.pending{background:rgba(255,184,0,0.15);color:var(--warn)}
+.badge.confirmed{background:rgba(0,255,209,0.12);color:var(--neon)}
+.badge.cancelled{background:rgba(255,107,107,0.12);color:var(--neon3)}
+.badge.slip_uploaded{background:rgba(255,184,0,0.12);color:var(--warn)}
+.badge.approved{background:rgba(0,255,209,0.12);color:var(--neon)}
+.badge.rejected{background:rgba(255,107,107,0.12);color:var(--neon3)}
+.badge.unpaid{background:rgba(255,107,107,0.07);color:var(--neon3)}
+.badge.super_admin{background:rgba(0,255,209,0.15);color:var(--neon)}
+.badge.admin{background:rgba(123,97,255,0.15);color:var(--neon2)}
+.abt{background:none;border:1px solid var(--border);color:var(--muted);padding:0.22rem 0.5rem;font-size:0.62rem;cursor:pointer;transition:all 0.22s;margin:0 1px;clip-path:polygon(3px 0%,100% 0%,calc(100% - 3px) 100%,0% 100%)}
+.abt:hover{border-color:var(--neon);color:var(--neon)}
+.abt.red:hover{border-color:var(--neon3);color:var(--neon3)}
+.abt.green:hover{border-color:var(--neon);color:var(--neon)}
+.empty-state{padding:3.5rem 2rem;text-align:center}
+.empty-icon{font-size:2.5rem;margin-bottom:0.8rem;opacity:0.35}
+.empty-text{color:var(--muted);font-size:0.82rem}
+.tbl-ftr{padding:0.65rem 1.2rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:0.7rem;color:var(--muted);flex-wrap:wrap;gap:0.5rem}
+
+/* PAYMENT REVIEW */
+.slip-img-wrap{text-align:center;margin:1rem 0}
+.slip-img-wrap img{max-width:100%;max-height:300px;border:1px solid var(--border);object-fit:contain}
+.slip-no-img{padding:1.5rem;background:rgba(0,0,0,0.2);border:1px dashed var(--border);text-align:center;color:var(--muted);font-size:0.8rem}
+
+/* BUS SEAT MAP */
+.bus-tabs{display:flex;gap:0.5rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.bus-tab{background:none;border:1px solid var(--border);color:var(--muted);padding:0.4rem 1rem;font-family:var(--fd);font-size:0.55rem;letter-spacing:2px;cursor:pointer;transition:all 0.25s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
+.bus-tab.active{background:rgba(0,255,209,0.1);color:var(--neon);border-color:rgba(0,255,209,0.35)}
+.add-bus-btn{background:rgba(0,255,209,0.08);border:1px dashed var(--border-neon);color:var(--neon)}
+.seat-map-wrap{background:var(--card);border:1px solid var(--border);padding:1.5rem;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));margin-bottom:1.5rem}
+.seat-map-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:0.8rem}
+.seat-map-title{font-family:var(--fd);font-size:0.7rem;letter-spacing:2px;color:var(--neon)}
+.seat-config-row{display:flex;gap:0.8rem;flex-wrap:wrap;align-items:center}
+.seat-cfg-label{font-family:var(--fd);font-size:0.5rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.seat-cfg-input{background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);padding:0.35rem 0.6rem;font-family:var(--fb);font-size:0.82rem;outline:none;width:60px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
+.seat-cfg-input:focus{border-color:var(--neon)}
+.seat-save-btn{background:var(--neon);color:var(--dark);border:none;padding:0.4rem 1rem;font-family:var(--fd);font-size:0.52rem;letter-spacing:2px;cursor:pointer;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
+.seat-bus-label{font-family:var(--fd);font-size:0.55rem;letter-spacing:2px;color:var(--muted)}
+.bus-name-input{background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);padding:0.35rem 0.6rem;font-family:var(--fb);font-size:0.82rem;outline:none;width:120px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
+.bus-name-input:focus{border-color:var(--neon)}
+.seat-legend{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.leg-item{display:flex;align-items:center;gap:0.4rem;font-size:0.72rem;color:var(--muted)}
+.leg-dot{width:14px;height:14px;border-radius:2px;flex-shrink:0}
+.seat-grid-wrap{overflow-x:auto}
+.seat-grid{display:inline-flex;flex-direction:column;gap:6px;min-width:max-content;padding:0.5rem}
+.seat-row{display:flex;gap:6px;align-items:center}
+.seat-row-label{font-family:var(--fd);font-size:0.5rem;color:var(--muted);width:20px;text-align:center;flex-shrink:0}
+.seat-aisle{width:16px;flex-shrink:0}
+.seat{width:38px;height:38px;border-radius:4px 4px 2px 2px;border:1px solid;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:0.5rem;letter-spacing:1px;cursor:pointer;transition:all 0.2s;position:relative;flex-shrink:0}
+.seat.free{background:rgba(0,255,209,0.08);border-color:rgba(0,255,209,0.25);color:var(--neon)}
+.seat.free:hover{background:rgba(0,255,209,0.18);border-color:var(--neon);transform:translateY(-2px)}
+.seat.occupied{background:rgba(123,97,255,0.15);border-color:rgba(123,97,255,0.4);color:var(--neon2);cursor:pointer}
+.seat.occupied:hover{background:rgba(123,97,255,0.25)}
+.seat.selected{background:var(--neon);border-color:var(--neon);color:var(--dark)}
+.seat.driver{background:rgba(255,184,0,0.1);border-color:rgba(255,184,0,0.3);color:var(--warn);cursor:default}
+.seat-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--dark2);border:1px solid var(--border);padding:4px 8px;font-size:0.6rem;white-space:nowrap;color:var(--text);pointer-events:none;display:none;z-index:10;font-family:var(--fb)}
+.seat:hover .seat-tooltip{display:block}
+
+/* ASSIGN MODAL */
+.assign-modal-bg{position:fixed;inset:0;background:rgba(4,13,18,0.95);display:none;align-items:center;justify-content:center;z-index:500;padding:1rem}
+.assign-modal-bg.open{display:flex}
+.assign-modal{background:var(--dark2);border:1px solid var(--border);padding:1.8rem;max-width:460px;width:100%;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));animation:min 0.3s ease;position:relative;max-height:85vh;overflow-y:auto}
+.assign-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent)}
+@keyframes min{from{transform:scale(0.92) translateY(12px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.am-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem}
+.am-title{font-family:var(--fd);font-size:0.72rem;letter-spacing:2px;color:var(--neon)}
+.am-close{background:none;border:1px solid var(--border);color:var(--muted);width:26px;height:26px;cursor:pointer;font-size:0.9rem;transition:all 0.2s}
+.am-close:hover{border-color:var(--neon3);color:var(--neon3)}
+.am-row{display:flex;padding:0.48rem 0;border-bottom:1px solid rgba(0,255,209,0.06);gap:0.8rem}
+.am-row:last-child{border-bottom:none}
+.am-key{font-family:var(--fd);font-size:0.48rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;min-width:90px;padding-top:2px}
+.am-val{font-size:0.8rem;color:var(--text);word-break:break-word}
+.am-actions{display:flex;gap:0.5rem;margin-top:1.2rem;flex-wrap:wrap}
+.am-btn{padding:0.55rem 1.1rem;font-family:var(--fd);font-size:0.52rem;letter-spacing:2px;cursor:pointer;transition:all 0.25s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);border:1px solid}
+.am-btn.confirm{background:rgba(0,255,209,0.1);color:var(--neon);border-color:rgba(0,255,209,0.3)}
+.am-btn.confirm:hover{background:rgba(0,255,209,0.2)}
+.am-btn.reject{background:rgba(255,107,107,0.1);color:var(--neon3);border-color:rgba(255,107,107,0.3)}
+.am-btn.reject:hover{background:rgba(255,107,107,0.18)}
+.am-btn.assign{background:rgba(123,97,255,0.1);color:var(--neon2);border-color:rgba(123,97,255,0.3)}
+.am-btn.assign:hover{background:rgba(123,97,255,0.2)}
+.am-btn.remove{background:rgba(255,107,107,0.08);color:var(--neon3);border-color:rgba(255,107,107,0.2)}
+
+/* QR SCANNER */
+.scanner-wrap{max-width:480px;margin:0 auto}
+.scanner-box{background:var(--card);border:1px solid var(--border);padding:2rem;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));text-align:center}
+.scanner-video-wrap{position:relative;margin:0 auto 1.2rem;width:280px;height:280px;border:2px solid var(--neon);overflow:hidden;background:#000}
+.scanner-video-wrap video{width:100%;height:100%;object-fit:cover}
+.scanner-overlay{position:absolute;inset:0;pointer-events:none}
+.scan-corner{position:absolute;width:24px;height:24px;border-color:var(--neon);border-style:solid}
+.sc-tl{top:8px;left:8px;border-width:3px 0 0 3px}
+.sc-tr{top:8px;right:8px;border-width:3px 3px 0 0}
+.sc-bl{bottom:8px;left:8px;border-width:0 0 3px 3px}
+.sc-br{bottom:8px;right:8px;border-width:0 3px 3px 0}
+.scan-line-anim{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--neon),transparent);animation:scan-move 2s ease-in-out infinite}
+@keyframes scan-move{0%{top:10px}100%{top:260px}}
+.scanner-btn{background:var(--neon);color:var(--dark);border:none;padding:0.8rem 2rem;font-family:var(--fd);font-size:0.7rem;font-weight:700;letter-spacing:3px;cursor:pointer;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);margin:0.5rem 0.3rem;transition:all 0.25s}
+.scanner-btn:hover{box-shadow:0 0 20px rgba(0,255,209,0.3)}
+.scanner-btn.stop{background:rgba(255,107,107,0.15);color:var(--neon3);border:1px solid rgba(255,107,107,0.3)}
+.scanner-result{margin-top:1.2rem;padding:1.2rem;border:1px solid var(--border);background:rgba(0,0,0,0.2);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));display:none}
+.scan-name{font-family:var(--fd);font-size:0.9rem;color:var(--neon);margin-bottom:0.5rem;letter-spacing:2px}
+.scan-seat{font-size:2rem;font-weight:900;color:var(--neon);font-family:var(--fd);letter-spacing:4px;margin:0.5rem 0}
+.scan-detail{font-size:0.8rem;color:var(--muted);margin:0.3rem 0}
+.scan-status{font-family:var(--fd);font-size:0.7rem;letter-spacing:2px;margin-top:0.5rem}
+.scan-status.ok{color:var(--neon)}
+.scan-status.err{color:var(--neon3)}
+
+/* ANALYTICS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;margin-bottom:1.4rem}
+@media(max-width:760px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:var(--card);border:1px solid var(--border);padding:1.2rem;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.chart-title{font-family:var(--fd);font-size:0.62rem;letter-spacing:2px;color:var(--muted);margin-bottom:1.1rem;text-transform:uppercase}
+.bar-chart{display:flex;align-items:flex-end;gap:0.4rem;height:130px}
+.bwrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%}
+.bouter{flex:1;width:100%;display:flex;align-items:flex-end;max-width:36px}
+.binner{width:100%;background:linear-gradient(0deg,var(--neon),rgba(0,255,209,0.3));border-radius:2px 2px 0 0;transition:height 0.8s cubic-bezier(0.16,1,0.3,1);min-height:2px}
+.bval{font-family:var(--fd);font-size:0.52rem;color:var(--neon);margin-bottom:2px}
+.blabel{font-size:0.52rem;color:var(--muted);letter-spacing:1px;text-align:center}
+.pie-wrap{display:flex;align-items:center;gap:1.3rem;flex-wrap:wrap}
+.pie-legend{display:flex;flex-direction:column;gap:0.5rem}
+.leg-item2{display:flex;align-items:center;gap:0.45rem;font-size:0.72rem;color:var(--muted)}
+.leg-dot2{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.city-list{display:flex;flex-direction:column;gap:0.45rem}
+.city-row{display:flex;align-items:center;gap:0.7rem}
+.city-name{font-size:0.75rem;color:var(--text);min-width:75px}
+.city-bar{flex:1;height:5px;background:rgba(0,255,209,0.08);border-radius:3px;overflow:hidden}
+.city-fill{height:100%;background:linear-gradient(90deg,var(--neon),var(--neon2));border-radius:3px;transition:width 0.8s}
+.city-cnt{font-size:0.68rem;color:var(--muted);min-width:18px;text-align:right}
+
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
+@media(max-width:640px){.settings-grid{grid-template-columns:1fr}}
+.s-card{background:var(--card);border:1px solid var(--border);padding:1.4rem;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.s-card.full{grid-column:span 2}
+@media(max-width:640px){.s-card.full{grid-column:span 1}}
+.s-card-title{font-family:var(--fd);font-size:0.64rem;letter-spacing:2px;color:var(--neon);margin-bottom:1.1rem;text-transform:uppercase}
+.s-row{display:flex;align-items:center;justify-content:space-between;padding:0.65rem 0;border-bottom:1px solid rgba(0,255,209,0.06);gap:0.8rem}
+.s-row:last-child{border-bottom:none}
+.s-lbl{font-size:0.78rem;color:var(--text)}
+.s-sub{font-size:0.68rem;color:var(--muted);margin-top:1px}
+.toggle{position:relative;width:38px;height:21px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radius:21px;transition:0.3s}
+.toggle-slider::before{content:'';position:absolute;width:15px;height:15px;border-radius:50%;left:2px;top:2px;background:var(--muted);transition:0.3s}
+.toggle input:checked+.toggle-slider{background:rgba(0,255,209,0.18);border-color:var(--neon)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(17px);background:var(--neon)}
+.s-input{background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--text);padding:0.48rem 0.75rem;font-family:var(--fb);font-size:0.8rem;outline:none;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);width:170px;transition:border-color 0.3s}
+.s-input:focus{border-color:var(--neon)}
+.save-btn{background:var(--neon);color:var(--dark);border:none;padding:0.55rem 1.4rem;font-family:var(--fd);font-size:0.58rem;letter-spacing:2px;cursor:pointer;margin-top:0.9rem;transition:all 0.25s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
+.save-btn:hover{box-shadow:0 0 18px rgba(0,255,209,0.3)}
+.danger-btn{background:rgba(255,107,107,0.08);color:var(--neon3);border:1px solid rgba(255,107,107,0.25);padding:0.55rem 1.1rem;font-family:var(--fd);font-size:0.52rem;letter-spacing:2px;cursor:pointer;transition:all 0.25s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
+.danger-btn:hover{background:rgba(255,107,107,0.16)}
+
+/* ADMIN USERS */
+.admin-list{display:flex;flex-direction:column;gap:0.55rem;margin-bottom:1rem}
+.admin-item{display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.8rem;background:rgba(0,0,0,0.2);border:1px solid var(--border);gap:1rem}
+.admin-email{font-size:0.78rem;color:var(--text)}
+.add-admin-form{display:flex;gap:0.55rem;flex-wrap:wrap;margin-top:0.8rem;align-items:flex-end}
+.logo-upload-area{border:1px dashed var(--border);background:rgba(0,255,209,0.03);padding:1rem;text-align:center;cursor:pointer;transition:all 0.3s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);position:relative;width:100%;margin-top:0.5rem}
+.logo-upload-area:hover{border-color:var(--neon);background:rgba(0,255,209,0.06)}
+.logo-upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.logo-preview{display:flex;align-items:center;gap:1rem;margin-top:0.8rem}
+.logo-preview img{width:60px;height:60px;object-fit:contain;border:1px solid var(--border);background:rgba(0,0,0,0.3);padding:4px}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.8rem;right:1.4rem;background:var(--dark2);border:1px solid var(--neon);color:var(--neon);padding:0.65rem 1.1rem;font-family:var(--fd);font-size:0.58rem;letter-spacing:2px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);z-index:600;display:none;animation:ta 0.3s ease;max-width:300px}
+.toast.show{display:block}
+@keyframes ta{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.mob-tog{display:block}.topbar{padding:0.75rem 1rem}.page{padding:1.1rem 0.9rem}.search-bar{width:130px}.charts-grid{grid-template-columns:1fr}}
+@media(max-width:480px){.search-bar{display:none}.metrics-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo-row">
+      <div class="login-logo-placeholder" id="login-logo">P</div>
+      <div class="login-logo-text">PEAK</div>
+    </div>
+    <div class="login-subtitle">ADMIN DASHBOARD</div>
+    <label class="login-label">Email</label>
+    <input class="login-input" id="l-email" type="email" placeholder="admin@email.com" autocomplete="email">
+    <label class="login-label">Password</label>
+    <input class="login-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="login-btn" id="login-btn" onclick="doLogin()">⟢ ACCESS DASHBOARD</button>
+    <p class="login-err" id="l-err">Invalid credentials.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sb-logo-row">
+        <div class="sb-logo-placeholder" id="sb-logo">P</div>
+        <div><div class="s-logo">PEAK</div><div class="s-logo-sub">ADMIN PORTAL</div></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-sec">Main</div>
+      <div class="s-item active" onclick="showPage('dashboard',this)"><span class="s-icon">📊</span>Dashboard</div>
+      <div class="s-item" onclick="showPage('payments',this)"><span class="s-icon">💳</span>Payments<span class="s-badge" id="slip-badge" style="display:none">0</span></div>
+      <div class="s-item" onclick="showPage('bookings',this)"><span class="s-icon">🎟️</span>All Bookings</div>
+      <div class="s-item" onclick="showPage('seats',this)"><span class="s-icon">🚌</span>Bus & Seats</div>
+      <div class="s-item" onclick="showPage('scanner',this)"><span class="s-icon">📷</span>QR Scanner</div>
+      <div class="s-item" onclick="showPage('analytics',this)"><span class="s-icon">📈</span>Analytics</div>
+      <div class="nav-sec">Config</div>
+      <div class="s-item" onclick="showPage('admins',this)"><span class="s-icon">👥</span>Admin Users</div>
+      <div class="s-item" onclick="showPage('settings',this)"><span class="s-icon">⚙️</span>Settings</div>
+      <div class="s-item" onclick="window.open('index.html','_blank')"><span class="s-icon">🌐</span>View Site</div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="s-user">
+        <div class="s-av" id="s-av">AD</div>
+        <div class="s-uinfo"><div class="s-uname" id="s-uname">Admin</div><div class="s-urole" id="s-urole">Administrator</div></div>
+        <button class="s-logout" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-left">
+        <button class="mob-tog" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <div class="page-title" id="page-title"><span class="rtdot"></span>Dashboard</div>
+      </div>
+      <div class="tb-right">
+        <input class="search-bar" type="text" id="search-bar" placeholder="Search..." oninput="renderActive()">
+        <button class="tb-btn" onclick="exportCSV()">⬇ CSV</button>
+        <button class="tb-btn" onclick="loadAll()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="metrics-grid" id="mg1"></div>
+      <div class="tbl-wrap">
+        <div class="tbl-hdr">
+          <div class="tbl-title">Recent Bookings</div>
+          <div class="ftabs">
+            <button class="ftab active" onclick="setF('all',this,'d')">All</button>
+            <button class="ftab" onclick="setF('pending',this,'d')">Pending</button>
+            <button class="ftab" onclick="setF('confirmed',this,'d')">Confirmed</button>
+            <button class="ftab" onclick="setF('cancelled',this,'d')">Cancelled</button>
+          </div>
+        </div>
+        <div class="tbl-scroll"><table><thead><tr><th>Ref</th><th>Name</th><th>Email</th><th>Phone</th><th>Seats</th><th>Payment</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="tb-d"></tbody></table></div>
+        <div class="tbl-ftr"><span id="tc-d">—</span><span id="tt-d" style="color:var(--neon);font-family:var(--fd);font-size:0.58rem;letter-spacing:1px"></span></div>
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="page" id="page-payments">
+      <div class="tbl-wrap">
+        <div class="tbl-hdr">
+          <div class="tbl-title">Payment Slip Review</div>
+          <div class="ftabs">
+            <button class="ftab active" onclick="setF('all',this,'p')">All</button>
+            <button class="ftab" onclick="setF('slip_uploaded',this,'p')">Needs Review</button>
+            <button class="ftab" onclick="setF('approved',this,'p')">Approved</button>
+            <button class="ftab" onclick="setF('rejected',this,'p')">Rejected</button>
+          </div>
+        </div>
+        <div class="tbl-scroll"><table><thead><tr><th>Ref</th><th>Name</th><th>Email</th><th>Seats</th><th>Slip</th><th>Payment</th><th>QR Sent</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="tb-p"></tbody></table></div>
+        <div class="tbl-ftr"><span id="tc-p">—</span></div>
+      </div>
+    </div>
+
+    <!-- ALL BOOKINGS -->
+    <div class="page" id="page-bookings">
+      <div class="tbl-wrap">
+        <div class="tbl-hdr">
+          <div class="tbl-title">All Bookings</div>
+          <div class="ftabs">
+            <button class="ftab active" onclick="setF('all',this,'b')">All</button>
+            <button class="ftab" onclick="setF('pending',this,'b')">Pending</button>
+            <button class="ftab" onclick="setF('confirmed',this,'b')">Confirmed</button>
+            <button class="ftab" onclick="setF('cancelled',this,'b')">Cancelled</button>
+          </div>
+        </div>
+        <div class="tbl-scroll"><table><thead><tr><th>Ref</th><th>Name</th><th>Email</th><th>Phone</th><th>Seats</th><th>City</th><th>Age</th><th>Source</th><th>Notes</th><th>Payment</th><th>Status</th><th>Attended</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="tb-b"></tbody></table></div>
+        <div class="tbl-ftr"><span id="tc-b">—</span><span id="tt-b" style="color:var(--neon);font-family:var(--fd);font-size:0.58rem;letter-spacing:1px"></span></div>
+      </div>
+    </div>
+
+    <!-- BUS & SEATS -->
+    <div class="page" id="page-seats">
+      <div class="bus-tabs" id="bus-tabs"></div>
+      <div class="seat-map-wrap" id="seat-map-wrap">
+        <div class="seat-map-header">
+          <div class="seat-map-title" id="seat-map-title">BUS 1 · SEAT MAP</div>
+          <div class="seat-config-row">
+            <div><div class="seat-cfg-label">Bus Name</div><input class="bus-name-input" id="bus-name-input" placeholder="Bus 1"></div>
+            <div><div class="seat-cfg-label">Rows</div><input class="seat-cfg-input" id="cfg-rows" type="number" min="2" max="20" value="11"></div>
+            <div><div class="seat-cfg-label">Cols</div><input class="seat-cfg-input" id="cfg-cols" type="number" min="2" max="6" value="4"></div>
+            <button class="seat-save-btn" onclick="saveBusConfig()">SAVE LAYOUT</button>
+            <button class="seat-save-btn" style="background:rgba(255,107,107,0.15);color:var(--neon3)" onclick="deleteBus()">DELETE BUS</button>
+          </div>
+        </div>
+        <div class="seat-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:rgba(0,255,209,0.2);border:1px solid rgba(0,255,209,0.4)"></div>Free</div>
+          <div class="leg-item"><div class="leg-dot" style="background:rgba(123,97,255,0.2);border:1px solid rgba(123,97,255,0.4)"></div>Assigned</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--neon)"></div>Selected</div>
+          <div class="leg-item"><div class="leg-dot" style="background:rgba(255,184,0,0.15);border:1px solid rgba(255,184,0,0.3)"></div>Driver</div>
+        </div>
+        <div class="seat-grid-wrap"><div class="seat-grid" id="seat-grid"></div></div>
+        <div style="margin-top:1rem;font-size:0.78rem;color:var(--muted)">Click a seat to assign or unassign a booking.</div>
+      </div>
+      <button class="seat-save-btn" style="margin-bottom:1.5rem" onclick="addBus()">+ ADD BUS</button>
+    </div>
+
+    <!-- QR SCANNER -->
+    <div class="page" id="page-scanner">
+      <div class="scanner-wrap">
+        <div class="section-header" style="text-align:center;margin-bottom:1.5rem">
+          <span style="font-family:var(--fd);font-size:0.55rem;letter-spacing:4px;color:var(--neon);display:block;margin-bottom:0.5rem">◈ ATTENDANCE</span>
+          <h2 style="font-family:var(--fd);font-size:1.4rem;color:var(--text)">QR CHECK-IN SCANNER</h2>
+        </div>
+        <div class="scanner-box">
+          <div class="scanner-video-wrap" id="scanner-video-wrap" style="display:none">
+            <video id="scanner-video" autoplay playsinline muted></video>
+            <canvas id="scanner-canvas" style="display:none"></canvas>
+            <div class="scanner-overlay">
+              <div class="scan-corner sc-tl"></div><div class="scan-corner sc-tr"></div>
+              <div class="scan-corner sc-bl"></div><div class="scan-corner sc-br"></div>
+              <div class="scan-line-anim"></div>
+            </div>
+          </div>
+          <div id="scanner-placeholder" style="font-size:3rem;margin-bottom:0.8rem">📷</div>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1.2rem">Point the camera at the attendee's QR code to check them in and mark attendance.</p>
+          <button class="scanner-btn" id="start-scan-btn" onclick="startScanner()">⟢ START SCANNER</button>
+          <button class="scanner-btn stop" id="stop-scan-btn" onclick="stopScanner()" style="display:none">■ STOP</button>
+          <div style="margin-top:1rem">
+            <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem">Or enter QR token manually:</p>
+            <div style="display:flex;gap:0.5rem">
+              <input id="manual-token" type="text" placeholder="TKN-XXXXXX-XXXXXX" style="flex:1;background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);padding:0.55rem 0.8rem;font-family:var(--fb);font-size:0.82rem;outline:none;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)" onkeydown="if(event.key==='Enter')manualScan()">
+              <button class="scanner-btn" style="margin:0;padding:0.55rem 1rem;font-size:0.6rem" onclick="manualScan()">CHECK IN</button>
+            </div>
+          </div>
+          <div class="scanner-result" id="scanner-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="metrics-grid" id="mg2"></div>
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title">Status Breakdown</div><div class="pie-wrap"><svg width="110" height="110" viewBox="0 0 110 110" id="pie-svg"><circle cx="55" cy="55" r="40" fill="none" stroke="rgba(0,255,209,0.07)" stroke-width="26"/></svg><div class="pie-legend" id="pie-legend"></div></div></div>
+        <div class="chart-card"><div class="chart-title">Seats per Booking</div><div class="bar-chart" id="seats-chart"></div></div>
+        <div class="chart-card"><div class="chart-title">Top Cities</div><div class="city-list" id="city-chart"></div></div>
+        <div class="chart-card"><div class="chart-title">Age Groups</div><div class="bar-chart" id="age-chart"></div></div>
+        <div class="chart-card"><div class="chart-title">Payment Status</div><div class="bar-chart" id="pay-chart"></div></div>
+        <div class="chart-card"><div class="chart-title">Referral Sources</div><div class="city-list" id="ref-chart"></div></div>
+      </div>
+    </div>
+
+    <!-- ADMIN USERS -->
+    <div class="page" id="page-admins">
+      <div class="settings-grid">
+        <div class="s-card full">
+          <div class="s-card-title">Admin Users</div>
+          <div class="admin-list" id="admin-list"><div style="color:var(--muted);font-size:0.8rem">Loading...</div></div>
+          <div class="s-card-title" style="margin-top:1.5rem">Invite New Admin</div>
+          <p style="font-size:0.76rem;color:var(--muted);margin-bottom:0.8rem;line-height:1.6">The new admin must first accept an invite from Supabase Auth. Then add their email here to grant dashboard access.</p>
+          <div class="add-admin-form">
+            <div><div class="seat-cfg-label" style="margin-bottom:3px">Email</div><input class="s-input" type="email" id="new-admin-email" placeholder="admin@email.com" style="width:220px"></div>
+            <div><div class="seat-cfg-label" style="margin-bottom:3px">Role</div><select class="s-input" id="new-admin-role" style="width:130px"><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
+            <button class="save-btn" style="margin-top:0;align-self:flex-end" onclick="addAdmin()">ADD ADMIN</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="settings-grid">
+        <div class="s-card">
+          <div class="s-card-title">Organization</div>
+          <div class="s-row"><div><div class="s-lbl">Organization Name</div></div><input class="s-input" id="s-orgname" placeholder="PEAK Adventures"></div>
+          <div class="s-row"><div><div class="s-lbl">Contact Email</div></div><input class="s-input" id="s-email" type="email" placeholder="email@example.com"></div>
+          <div class="s-row"><div><div class="s-lbl">Contact Phone</div></div><input class="s-input" id="s-phone" placeholder="+94 XX XXX XXXX"></div>
+          <div class="s-card-title" style="margin-top:1.2rem">Organization Logo</div>
+          <p style="font-size:0.74rem;color:var(--muted);line-height:1.6;margin-bottom:0.5rem">Upload your logo to display on the site and emails.</p>
+          <div class="logo-upload-area" id="logo-upload-area">
+            <input type="file" id="logo-file" accept="image/*" onchange="previewLogo(this)">
+            <div>📁 Click to upload logo (PNG, SVG, JPG)</div>
+          </div>
+          <div class="logo-preview" id="logo-preview" style="display:none">
+            <img id="logo-preview-img" src="" alt="Logo">
+            <div style="font-size:0.78rem;color:var(--muted)" id="logo-preview-name"></div>
+          </div>
+          <button class="save-btn" onclick="saveOrgSettings()">SAVE ORG SETTINGS</button>
+        </div>
+        <div class="s-card">
+          <div class="s-card-title">Trip Configuration</div>
+          <div class="s-row"><div><div class="s-lbl">Trip Name</div></div><input class="s-input" id="s-tripname" placeholder="Nuwara Eliya Day Expedition"></div>
+          <div class="s-row"><div><div class="s-lbl">Trip Date</div></div><input class="s-input" type="date" id="s-date"></div>
+          <div class="s-row"><div><div class="s-lbl">Ticket Price (LKR)</div></div><input class="s-input" type="number" id="s-price" placeholder="4500"></div>
+          <div class="s-row"><div><div class="s-lbl">Total Seat Capacity</div></div><input class="s-input" type="number" id="s-capacity" placeholder="50"></div>
+          <button class="save-btn" onclick="saveTripConfig()">SAVE TRIP CONFIG</button>
+        </div>
+        <div class="s-card">
+          <div class="s-card-title">Payment Details</div>
+          <div class="s-row"><div><div class="s-lbl">Bank Name</div></div><input class="s-input" id="s-bank" placeholder="Bank of Ceylon"></div>
+          <div class="s-row"><div><div class="s-lbl">Account Number</div></div><input class="s-input" id="s-acc" placeholder="1234567890"></div>
+          <div class="s-row"><div><div class="s-lbl">Branch</div></div><input class="s-input" id="s-branch" placeholder="Kandy"></div>
+          <button class="save-btn" onclick="savePaymentConfig()">SAVE PAYMENT DETAILS</button>
+        </div>
+        <div class="s-card">
+          <div class="s-card-title">Controls</div>
+          <div class="s-row"><div><div class="s-lbl">Bookings Open</div><div class="s-sub">Allow new seat requests</div></div><label class="toggle"><input type="checkbox" id="s-open" checked><span class="toggle-slider"></span></label></div>
+          <div class="s-row"><div><div class="s-lbl">Show Ticket Price</div><div class="s-sub">Display price on public site</div></div><label class="toggle"><input type="checkbox" id="s-show-price"><span class="toggle-slider"></span></label></div>
+          <button class="save-btn" onclick="saveToggles()">SAVE CONTROLS</button>
+        </div>
+        <div class="s-card full">
+          <div class="s-card-title">Data Management</div>
+          <div class="s-row"><div><div class="s-lbl">Export All Bookings</div></div><button class="save-btn" style="margin-top:0" onclick="exportCSV()">EXPORT CSV</button></div>
+          <div class="s-row"><div><div class="s-lbl">Delete All Bookings</div><div class="s-sub">⚠️ Permanently removes all records from database</div></div><button class="danger-btn" onclick="deleteAll()">DELETE ALL</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .main -->
+</div><!-- end #app -->
+
+<!-- ASSIGN MODAL -->
+<div class="assign-modal-bg" id="assign-modal">
+  <div class="assign-modal">
+    <div class="am-hdr"><div class="am-title" id="am-title">BOOKING DETAILS</div><button class="am-close" onclick="closeModal('assign-modal')">✕</button></div>
+    <div id="am-body"></div>
+    <div class="slip-img-wrap" id="am-slip"></div>
+    <div class="am-actions" id="am-actions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL='https://ehzxoapgandezbhuvjrd.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoenhvYXBnYW5kZXpiaHV2anJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NzE0NDcsImV4cCI6MjA5NjQ0NzQ0N30.aR68BbL-X3TQoQNAhTKXizT5UvupYzYc13-nHs6xgDY';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+
+let allBookings=[],allBuses=[],allSeats=[],currentUser=null,userRole='admin';
+let fD='all',fP='all',fB='all',activeBusId=null,selectedSeat=null,scanStream=null,scanInterval=null;
+
+// ── AUTH ──
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim();
+  const pass=document.getElementById('l-pass').value;
+  const btn=document.getElementById('login-btn');
+  btn.disabled=true;btn.textContent='AUTHENTICATING...';
+  document.getElementById('l-err').style.display='none';
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){document.getElementById('l-err').style.display='block';document.getElementById('l-err').textContent=error.message;btn.disabled=false;btn.textContent='⟢ ACCESS DASHBOARD';return}
+  const{data:role}=await sb.from('admin_roles').select('role').eq('user_id',data.user.id).single();
+  if(!role){await sb.auth.signOut();document.getElementById('l-err').style.display='block';document.getElementById('l-err').textContent='Access denied. Not an admin.';btn.disabled=false;btn.textContent='⟢ ACCESS DASHBOARD';return}
+  currentUser=data.user;userRole=role.role;
+  document.getElementById('s-av').textContent=(data.user.email||'AD').slice(0,2).toUpperCase();
+  document.getElementById('s-uname').textContent=data.user.email;
+  document.getElementById('s-urole').textContent=userRole==='super_admin'?'Super Admin':'Admin';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').classList.add('show');
+  btn.disabled=false;btn.textContent='⟢ ACCESS DASHBOARD';
+  await init();
+}
+document.getElementById('l-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('l-email').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+async function doLogout(){if(scanStream)stopScanner();await sb.auth.signOut();document.getElementById('login-screen').style.display='flex';document.getElementById('app').classList.remove('show');document.getElementById('l-email').value='';document.getElementById('l-pass').value=''}
+
+// ── INIT ──
+async function init(){
+  await Promise.all([loadBookings(),loadBuses(),loadSeats()]);
+  loadConfig();
+  renderMetrics();renderTable('d');renderTable('p');
+  setupRealtime();
+  updateSlipBadge();
+}
+async function loadAll(){await Promise.all([loadBookings(),loadBuses(),loadSeats()]);renderMetrics();renderActive();updateSlipBadge();showToast('↻ Refreshed')}
+async function loadBookings(){const{data}=await sb.from('bookings').select('*').order('created_at',{ascending:false});if(data)allBookings=data}
+async function loadBuses(){const{data}=await sb.from('buses').select('*').order('created_at');if(data)allBuses=data}
+async function loadSeats(){const{data}=await sb.from('seat_assignments').select('*,buses(name)').order('assigned_at');if(data)allSeats=data}
+function updateSlipBadge(){const n=allBookings.filter(b=>b.payment_status==='slip_uploaded').length;const el=document.getElementById('slip-badge');el.textContent=n;el.style.display=n>0?'block':'none'}
+
+// ── REALTIME ──
+function setupRealtime(){
+  sb.channel('rt').on('postgres_changes',{event:'*',schema:'public',table:'bookings'},async()=>{await loadBookings();renderMetrics();renderActive();updateSlipBadge()})
+  .on('postgres_changes',{event:'*',schema:'public',table:'seat_assignments'},async()=>{await loadSeats();if(document.getElementById('page-seats').classList.contains('active'))renderSeatMap()})
+  .on('postgres_changes',{event:'*',schema:'public',table:'buses'},async()=>{await loadBuses();if(document.getElementById('page-seats').classList.contains('active'))renderBusTabs()})
+  .subscribe();
+}
+
+// ── PAGES ──
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.s-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  const titles={dashboard:'Dashboard',payments:'Payment Review',bookings:'All Bookings',seats:'Bus & Seat Map',scanner:'QR Scanner',analytics:'Analytics',admins:'Admin Users',settings:'Settings'};
+  document.getElementById('page-title').innerHTML='<span class="rtdot"></span>'+(titles[id]||id);
+  if(id==='analytics')renderAnalytics();
+  if(id==='admins')loadAdmins();
+  if(id==='settings')loadConfigUI();
+  if(id==='seats'){renderBusTabs();renderSeatMap()}
+  if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('open');
+}
+function renderActive(){
+  const a=document.querySelector('.page.active');if(!a)return;
+  const id=a.id.replace('page-','');
+  if(id==='dashboard')renderTable('d');
+  else if(id==='payments')renderTable('p');
+  else if(id==='bookings')renderTable('b');
+  else if(id==='analytics')renderAnalytics();
+}
+
+// ── METRICS ──
+function renderMetrics(){
+  const b=allBookings;
+  const pending=b.filter(x=>x.status==='pending').length;
+  const confirmed=b.filter(x=>x.status==='confirmed').length;
+  const needsReview=b.filter(x=>x.payment_status==='slip_uploaded').length;
+  const attended=b.filter(x=>x.attended).length;
+  const seats=b.filter(x=>x.status!=='cancelled').reduce((s,x)=>s+(x.seats||0),0);
+  const ms=[
+    {l:'Total Bookings',v:b.length,s:'All time',c:'var(--neon)'},
+    {l:'Pending',v:pending,s:'Awaiting confirmation',c:'var(--warn)'},
+    {l:'Confirmed',v:confirmed,s:'Seats secured',c:'var(--neon)'},
+    {l:'Slips to Review',v:needsReview,s:'Awaiting approval',c:'var(--warn)'},
+    {l:'Total Seats',v:seats,s:'Confirmed + Pending',c:'var(--neon2)'},
+    {l:'Attended',v:attended,s:'Checked in',c:'var(--neon)'},
+  ];
+  ['mg1','mg2'].forEach(gid=>{const g=document.getElementById(gid);if(!g)return;g.innerHTML=ms.map(m=>`<div class="m-card" style="--mc:${m.c}"><div class="m-label">${m.l}</div><div class="m-val">${m.v}</div><div class="m-sub">${m.s}</div></div>`).join('')});
+}
+
+// ── TABLES ──
+function fmtDate(iso){const d=new Date(iso);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+function setF(f,btn,t){
+  if(t==='d'){fD=f;document.querySelectorAll('#page-dashboard .ftab').forEach(x=>x.classList.remove('active'))}
+  else if(t==='p'){fP=f;document.querySelectorAll('#page-payments .ftab').forEach(x=>x.classList.remove('active'))}
+  else{fB=f;document.querySelectorAll('#page-bookings .ftab').forEach(x=>x.classList.remove('active'))}
+  btn.classList.add('active');renderTable(t);
+}
+function renderTable(t){
+  const isD=t==='d',isP=t==='p',isB=t==='b';
+  const filter=isD?fD:isP?fP:fB;
+  const search=document.getElementById('search-bar')?.value?.toLowerCase()||'';
+  let b=allBookings.slice();
+  if(isP){if(filter!=='all')b=b.filter(x=>x.payment_status===filter)}
+  else{if(filter!=='all')b=b.filter(x=>x.status===filter)}
+  if(search)b=b.filter(x=>(x.name+x.email+x.phone+x.city+(x.booking_ref||'')).toLowerCase().includes(search));
+  const tbodyId=isD?'tb-d':isP?'tb-p':'tb-b';
+  const tbody=document.getElementById(tbodyId);if(!tbody)return;
+  if(!b.length){
+    const cols=isD?9:isP?9:14;
+    tbody.innerHTML=`<tr><td colspan="${cols}"><div class="empty-state"><div class="empty-icon">🎟️</div><div class="empty-text">No bookings found</div></div></td></tr>`;
+  } else if(isD){
+    tbody.innerHTML=b.map(bk=>`<tr>
+      <td style="font-family:monospace;font-size:0.65rem;color:var(--muted)">${bk.booking_ref||'—'}</td>
+      <td style="font-weight:500">${bk.name}</td>
+      <td class="md">${bk.email}</td>
+      <td class="md">${bk.phone}</td>
+      <td style="text-align:center;font-family:var(--fd);color:var(--neon)">${bk.seats}</td>
+      <td><span class="badge ${bk.payment_status}">${bk.payment_status.replace('_',' ').toUpperCase()}</span></td>
+      <td><span class="badge ${bk.status}">${bk.status.toUpperCase()}</span></td>
+      <td class="md">${fmtDate(bk.created_at)}</td>
+      <td><button class="abt" onclick="viewBooking('${bk.id}')">View</button><button class="abt green" onclick="quickStatus('${bk.id}','confirmed')">✓</button><button class="abt red" onclick="quickStatus('${bk.id}','cancelled')">✕</button></td>
+    </tr>`).join('');
+  } else if(isP){
+    tbody.innerHTML=b.map(bk=>`<tr>
+      <td style="font-family:monospace;font-size:0.65rem;color:var(--muted)">${bk.booking_ref||'—'}</td>
+      <td style="font-weight:500">${bk.name}</td>
+      <td class="md">${bk.email}</td>
+      <td style="text-align:center;font-family:var(--fd);color:var(--neon)">${bk.seats}</td>
+      <td>${bk.payment_slip_url?`<button class="abt" onclick="viewSlip('${bk.id}')">👁 View Slip</button>`:'<span class="md">No slip</span>'}</td>
+      <td><span class="badge ${bk.payment_status}">${bk.payment_status.replace('_',' ').toUpperCase()}</span></td>
+      <td style="text-align:center">${bk.qr_sent?'<span style="color:var(--neon)">✓ Sent</span>':'<span style="color:var(--muted)">—</span>'}</td>
+      <td class="md">${fmtDate(bk.created_at)}</td>
+      <td>
+        <button class="abt" onclick="viewBooking('${bk.id}')">View</button>
+        ${bk.payment_status==='slip_uploaded'?`<button class="abt green" onclick="approvePayment('${bk.id}')">✓ Approve</button><button class="abt red" onclick="rejectPayment('${bk.id}')">✕ Reject</button>`:''}
+        ${bk.payment_status==='approved'&&!bk.qr_sent?`<button class="abt" onclick="resendQR('${bk.id}')">📧 Send QR</button>`:''}
+      </td>
+    </tr>`).join('');
+  } else {
+    tbody.innerHTML=b.map(bk=>{
+      const sa=allSeats.filter(s=>s.booking_id===bk.id);
+      const seatStr=sa.length?sa.map(s=>`${s.buses?.name||'Bus'}·${s.seat_number}`).join(', '):'—';
+      return`<tr>
+        <td style="font-family:monospace;font-size:0.65rem;color:var(--muted)">${bk.booking_ref||'—'}</td>
+        <td style="font-weight:500">${bk.name}</td>
+        <td class="md">${bk.email}</td>
+        <td class="md">${bk.phone}</td>
+        <td style="text-align:center;font-family:var(--fd);color:var(--neon)">${bk.seats}</td>
+        <td class="md">${bk.city}</td>
+        <td class="md">${bk.age_group||'—'}</td>
+        <td class="md">${bk.ref_source||'—'}</td>
+        <td class="md" style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${bk.notes||'—'}</td>
+        <td><span class="badge ${bk.payment_status}">${bk.payment_status.replace('_',' ').toUpperCase()}</span></td>
+        <td><span class="badge ${bk.status}">${bk.status.toUpperCase()}</span></td>
+        <td style="text-align:center">${bk.attended?`<span style="color:var(--neon)">✓</span><div style="font-size:0.6rem;color:var(--muted)">${bk.attended_at?new Date(bk.attended_at).toLocaleTimeString():''}</div>`:'<span style="color:var(--muted)">—</span>'}</td>
+        <td class="md">${fmtDate(bk.created_at)}</td>
+        <td><button class="abt" onclick="viewBooking('${bk.id}')">View</button><button class="abt green" onclick="quickStatus('${bk.id}','confirmed')">✓</button><button class="abt red" onclick="quickStatus('${bk.id}','cancelled')">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+  if(document.getElementById('tc-'+t))document.getElementById('tc-'+t).textContent=`${b.length} booking${b.length!==1?'s':''}`;
+  const tot=b.filter(x=>x.status!=='cancelled').reduce((s,x)=>s+(x.seats||0),0);
+  if(document.getElementById('tt-'+t))document.getElementById('tt-'+t).textContent=`${tot} seats`;
+}
+
+async function quickStatus(id,status){
+  await sb.from('bookings').update({status}).eq('id',id);
+  const idx=allBookings.findIndex(x=>x.id===id);if(idx>-1)allBookings[idx].status=status;
+  renderMetrics();renderActive();showToast(status==='confirmed'?'✓ Confirmed':'✕ Cancelled');
+}
+
+// ── VIEW BOOKING ──
+function viewBooking(id){
+  const bk=allBookings.find(x=>x.id===id);if(!bk)return;
+  const sa=allSeats.filter(s=>s.booking_id===bk.id);
+  const seatStr=sa.length?sa.map(s=>`${s.buses?.name||'Bus'} · Seat ${s.seat_number}`).join(', '):'Not assigned';
+  document.getElementById('am-title').textContent='BOOKING · '+(bk.booking_ref||'—');
+  document.getElementById('am-body').innerHTML=[
+    ['Name',bk.name],['Email',bk.email],['Phone',bk.phone],
+    ['Seats',bk.seats],['City',bk.city],['Age',bk.age_group||'—'],
+    ['Source',bk.ref_source||'—'],['Notes',bk.notes||'—'],
+    ['Seat Assignment',seatStr],
+    ['Booking',`<span class="badge ${bk.status}">${bk.status.toUpperCase()}</span>`],
+    ['Payment',`<span class="badge ${bk.payment_status}">${bk.payment_status.replace('_',' ').toUpperCase()}</span>`],
+    ['QR Sent',bk.qr_sent?'✓ Yes':'No'],
+    ['Attended',bk.attended?`✓ Yes (${bk.attended_at?new Date(bk.attended_at).toLocaleString():'—'})`:'No'],
+    ['Submitted',fmtDate(bk.created_at)]
+  ].map(([k,v])=>`<div class="am-row"><div class="am-key">${k}</div><div class="am-val">${v}</div></div>`).join('');
+  // Show slip
+  const slipEl=document.getElementById('am-slip');
+  if(bk.payment_slip_url){
+    slipEl.innerHTML=`<p style="font-family:var(--fd);font-size:0.55rem;letter-spacing:2px;color:var(--muted);margin-bottom:0.5rem">PAYMENT SLIP</p><img src="${bk.payment_slip_url}" onerror="this.parentElement.innerHTML='<div class=slip-no-img>Unable to load slip image. <a href=${bk.payment_slip_url} target=_blank style=color:var(--neon)>Open in new tab</a></div>'" style="max-width:100%;max-height:240px;border:1px solid var(--border);object-fit:contain"><div style="margin-top:0.4rem"><a href="${bk.payment_slip_url}" target="_blank" style="font-size:0.72rem;color:var(--neon);text-decoration:none">↗ Open full size</a></div>`;
+  } else slipEl.innerHTML='<div class="slip-no-img">No payment slip uploaded yet.</div>';
+  // Actions
+  const acts=[];
+  if(bk.payment_status==='slip_uploaded'){
+    acts.push(`<button class="am-btn confirm" onclick="approvePayment('${bk.id}');closeModal('assign-modal')">✓ APPROVE PAYMENT</button>`);
+    acts.push(`<button class="am-btn reject" onclick="rejectPayment('${bk.id}');closeModal('assign-modal')">✕ REJECT</button>`);
+  }
+  if(bk.status==='confirmed'&&bk.payment_status==='approved'&&!bk.qr_sent)acts.push(`<button class="am-btn assign" onclick="resendQR('${bk.id}');closeModal('assign-modal')">📧 SEND QR</button>`);
+  if(bk.status!=='confirmed')acts.push(`<button class="am-btn confirm" onclick="quickStatus('${bk.id}','confirmed');closeModal('assign-modal')">✓ CONFIRM BOOKING</button>`);
+  if(bk.status!=='cancelled')acts.push(`<button class="am-btn reject" onclick="quickStatus('${bk.id}','cancelled');closeModal('assign-modal')">✕ CANCEL BOOKING</button>`);
+  document.getElementById('am-actions').innerHTML=acts.join('');
+  document.getElementById('assign-modal').classList.add('open');
+}
+function viewSlip(id){viewBooking(id)}
+
+// ── PAYMENT APPROVAL ──
+async function approvePayment(id){
+  const bk=allBookings.find(x=>x.id===id);if(!bk)return;
+  await sb.from('bookings').update({payment_status:'approved',status:'confirmed'}).eq('id',id);
+  const idx=allBookings.findIndex(x=>x.id===id);
+  if(idx>-1){allBookings[idx].payment_status='approved';allBookings[idx].status='confirmed'}
+  renderMetrics();renderActive();updateSlipBadge();
+  showToast('✓ Payment approved');
+  // Get seat assignments for this booking
+  const sa=allSeats.filter(s=>s.booking_id===id);
+  const seatNums=sa.map(s=>s.seat_number);
+  const busName=sa.length>0?(sa[0].buses?.name||'Bus 1'):'Bus 1';
+  // Send QR email
+  await sendQREmail(bk,seatNums,busName);
+}
+async function rejectPayment(id){
+  const reason=prompt('Reason for rejection (optional):');
+  const bk=allBookings.find(x=>x.id===id);if(!bk)return;
+  await sb.from('bookings').update({payment_status:'rejected'}).eq('id',id);
+  const idx=allBookings.findIndex(x=>x.id===id);if(idx>-1)allBookings[idx].payment_status='rejected';
+  renderMetrics();renderActive();updateSlipBadge();showToast('✕ Payment rejected');
+  try{
+    await fetch(`${SB_URL}/functions/v1/send-qr-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify({type:'payment_rejected',booking:{...bk,reject_reason:reason||''}})});
+  }catch(e){console.warn('Email error',e)}
+}
+async function sendQREmail(bk,seatNums,busName){
+  try{
+    await sb.from('bookings').update({qr_sent:true}).eq('id',bk.id);
+    const idx=allBookings.findIndex(x=>x.id===bk.id);if(idx>-1)allBookings[idx].qr_sent=true;
+    await fetch(`${SB_URL}/functions/v1/send-qr-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify({type:'payment_approved',booking:{...bk,seat_numbers:seatNums,bus_name:busName}})});
+    showToast('📧 QR email sent to '+bk.email);
+  }catch(e){showToast('⚠ DB updated but email failed');console.error(e)}
+}
+async function resendQR(id){
+  const bk=allBookings.find(x=>x.id===id);if(!bk)return;
+  const sa=allSeats.filter(s=>s.booking_id===id);
+  await sendQREmail(bk,sa.map(s=>s.seat_number),sa.length>0?(sa[0].buses?.name||'Bus 1'):'Bus 1');
+}
+
+// ── BUS & SEAT MAP ──
+function renderBusTabs(){
+  const wrap=document.getElementById('bus-tabs');
+  wrap.innerHTML=allBuses.map(b=>`<button class="bus-tab${b.id===activeBusId?' active':''}" onclick="selectBus('${b.id}')">${b.name}</button>`).join('');
+  if(!activeBusId&&allBuses.length>0){activeBusId=allBuses[0].id}
+}
+function selectBus(id){activeBusId=id;renderBusTabs();renderSeatMap()}
+function renderSeatMap(){
+  const bus=allBuses.find(b=>b.id===activeBusId);
+  if(!bus){document.getElementById('seat-grid').innerHTML='<div style="color:var(--muted);padding:2rem">No bus selected. Add a bus above.</div>';return}
+  document.getElementById('seat-map-title').textContent=`${bus.name.toUpperCase()} · SEAT MAP`;
+  document.getElementById('bus-name-input').value=bus.name;
+  document.getElementById('cfg-rows').value=bus.rows;
+  document.getElementById('cfg-cols').value=bus.cols;
+  const busSeats=allSeats.filter(s=>s.bus_id===bus.id);
+  const grid=document.getElementById('seat-grid');
+  grid.innerHTML='';
+  // Driver row
+  const driverRow=document.createElement('div');driverRow.className='seat-row';
+  const dl=document.createElement('div');dl.className='seat-row-label';dl.textContent='';
+  driverRow.appendChild(dl);
+  const driverSeat=document.createElement('div');
+  driverSeat.className='seat driver';driverSeat.textContent='DRV';
+  driverSeat.style.marginLeft='auto';
+  driverRow.appendChild(driverSeat);
+  driverRow.appendChild(document.createElement('div')).className='seat-aisle';
+  grid.appendChild(driverRow);
+  // Seat rows
+  for(let r=1;r<=bus.rows;r++){
+    const row=document.createElement('div');row.className='seat-row';
+    const lbl=document.createElement('div');lbl.className='seat-row-label';lbl.textContent=r;
+    row.appendChild(lbl);
+    for(let c=1;c<=bus.cols;c++){
+      const seatNum=`${r}${String.fromCharCode(64+c)}`;
+      const assigned=busSeats.find(s=>s.seat_number===seatNum);
+      const bk=assigned?allBookings.find(b=>b.id===assigned.booking_id):null;
+      const seat=document.createElement('div');
+      seat.className='seat '+(assigned?'occupied':'free');
+      seat.textContent=seatNum;
+      seat.dataset.seat=seatNum;
+      if(assigned&&bk){
+        const tip=document.createElement('div');tip.className='seat-tooltip';
+        tip.textContent=`${bk.name} (${bk.booking_ref||'—'})`;
+        seat.appendChild(tip);
+        seat.onclick=()=>showSeatModal(seatNum,assigned,bk);
+      } else {
+        seat.onclick=()=>showAssignModal(seatNum);
+      }
+      row.appendChild(seat);
+      // Aisle after col 2
+      if(c===2){const a=document.createElement('div');a.className='seat-aisle';row.appendChild(a)}
+    }
+    grid.appendChild(row);
+  }
+}
+function showSeatModal(seatNum,assigned,bk){
+  document.getElementById('am-title').textContent=`SEAT ${seatNum} · ASSIGNED`;
+  document.getElementById('am-body').innerHTML=[
+    ['Seat',seatNum],['Name',bk.name],['Ref',bk.booking_ref||'—'],
+    ['Email',bk.email],['Phone',bk.phone],['Seats Booked',bk.seats],
+    ['Status',`<span class="badge ${bk.status}">${bk.status.toUpperCase()}</span>`]
+  ].map(([k,v])=>`<div class="am-row"><div class="am-key">${k}</div><div class="am-val">${v}</div></div>`).join('');
+  document.getElementById('am-slip').innerHTML='';
+  document.getElementById('am-actions').innerHTML=`
+    <button class="am-btn remove" onclick="unassignSeat('${assigned.id}');closeModal('assign-modal')">✕ UNASSIGN SEAT</button>
+    <button class="am-btn assign" onclick="closeModal('assign-modal');viewBooking('${bk.id}')">VIEW BOOKING</button>`;
+  document.getElementById('assign-modal').classList.add('open');
+}
+async function showAssignModal(seatNum){
+  // Show list of confirmed bookings without seat assignment
+  const assigned=allSeats.filter(s=>s.bus_id===activeBusId).map(s=>s.booking_id);
+  const available=allBookings.filter(b=>b.status==='confirmed'&&b.payment_status==='approved');
+  document.getElementById('am-title').textContent=`ASSIGN SEAT ${seatNum}`;
+  if(!available.length){
+    document.getElementById('am-body').innerHTML='<div style="color:var(--muted);font-size:0.82rem;padding:0.5rem 0">No confirmed bookings available to assign.</div>';
+    document.getElementById('am-slip').innerHTML='';document.getElementById('am-actions').innerHTML='';
+    document.getElementById('assign-modal').classList.add('open');return;
+  }
+  const opts=available.map(b=>`<option value="${b.id}">${b.name} — ${b.booking_ref} (${b.seats} seats)</option>`).join('');
+  document.getElementById('am-body').innerHTML=`<div class="am-row"><div class="am-key">Seat</div><div class="am-val" style="color:var(--neon);font-family:var(--fd)">${seatNum}</div></div><div class="am-row"><div class="am-key">Assign to</div><div class="am-val"><select id="assign-select" style="background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);padding:0.4rem 0.6rem;width:100%;outline:none;font-family:var(--fb)"><option value="">Select booking...</option>${opts}</select></div></div>`;
+  document.getElementById('am-slip').innerHTML='';
+  document.getElementById('am-actions').innerHTML=`<button class="am-btn assign" onclick="assignSeat('${seatNum}')">ASSIGN SEAT</button>`;
+  document.getElementById('assign-modal').classList.add('open');
+}
+async function assignSeat(seatNum){
+  const bookingId=document.getElementById('assign-select')?.value;
+  if(!bookingId){showToast('Select a booking first');return}
+  const bus=allBuses.find(b=>b.id===activeBusId);if(!bus)return;
+  const{error}=await sb.from('seat_assignments').insert([{booking_id:bookingId,bus_id:activeBusId,seat_number:seatNum}]);
+  if(error){showToast('Error: '+error.message);return}
+  await loadSeats();renderSeatMap();closeModal('assign-modal');showToast(`✓ Seat ${seatNum} assigned`);
+  // If this booking has qr_sent, re-send with seat info
+  const bk=allBookings.find(x=>x.id===bookingId);
+  if(bk&&bk.qr_sent){
+    const sa=allSeats.filter(s=>s.booking_id===bookingId);
+    await sendQREmail(bk,sa.map(s=>s.seat_number),bus.name);
+  }
+}
+async function unassignSeat(assignId){
+  const{error}=await sb.from('seat_assignments').delete().eq('id',assignId);
+  if(error){showToast('Error: '+error.message);return}
+  await loadSeats();renderSeatMap();showToast('Seat unassigned');
+}
+async function saveBusConfig(){
+  const name=document.getElementById('bus-name-input').value.trim();
+  const rows=parseInt(document.getElementById('cfg-rows').value)||11;
+  const cols=parseInt(document.getElementById('cfg-cols').value)||4;
+  if(!name){showToast('Enter bus name');return}
+  if(!activeBusId){showToast('Select a bus first');return}
+  const{error}=await sb.from('buses').update({name,rows,cols}).eq('id',activeBusId);
+  if(error){showToast('Error: '+error.message);return}
+  await loadBuses();renderBusTabs();renderSeatMap();showToast('Bus layout saved');
+}
+async function addBus(){
+  const{data,error}=await sb.from('buses').insert([{name:`Bus ${allBuses.length+1}`,rows:11,cols:4}]).select().single();
+  if(error){showToast('Error: '+error.message);return}
+  await loadBuses();activeBusId=data.id;renderBusTabs();renderSeatMap();showToast('Bus added');
+}
+async function deleteBus(){
+  if(!activeBusId){showToast('No bus selected');return}
+  if(!confirm('Delete this bus and all its seat assignments?'))return;
+  await sb.from('seat_assignments').delete().eq('bus_id',activeBusId);
+  await sb.from('buses').delete().eq('id',activeBusId);
+  await loadBuses();await loadSeats();
+  activeBusId=allBuses.length>0?allBuses[0].id:null;
+  renderBusTabs();renderSeatMap();showToast('Bus deleted');
+}
+
+// ── QR SCANNER ──
+async function startScanner(){
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video=document.getElementById('scanner-video');
+    video.srcObject=scanStream;
+    document.getElementById('scanner-video-wrap').style.display='block';
+    document.getElementById('scanner-placeholder').style.display='none';
+    document.getElementById('start-scan-btn').style.display='none';
+    document.getElementById('stop-scan-btn').style.display='inline-block';
+    const canvas=document.getElementById('scanner-canvas');
+    const ctx=canvas.getContext('2d');
+    scanInterval=setInterval(()=>{
+      if(video.readyState===video.HAVE_ENOUGH_DATA){
+        canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+        ctx.drawImage(video,0,0);
+        const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+        if(code&&code.data){processQR(code.data)}
+      }
+    },500);
+  }catch(e){showToast('Camera error: '+e.message)}
+}
+function stopScanner(){
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}
+  if(scanInterval){clearInterval(scanInterval);scanInterval=null}
+  document.getElementById('scanner-video-wrap').style.display='none';
+  document.getElementById('scanner-placeholder').style.display='block';
+  document.getElementById('start-scan-btn').style.display='inline-block';
+  document.getElementById('stop-scan-btn').style.display='none';
+}
+function manualScan(){const t=document.getElementById('manual-token').value.trim();if(t)processQR(t)}
+let lastScanned='',lastScanTime=0;
+async function processQR(token){
+  const now=Date.now();
+  if(token===lastScanned&&now-lastScanTime<3000)return;
+  lastScanned=token;lastScanTime=now;
+  const res=document.getElementById('scanner-result');
+  res.style.display='block';res.innerHTML='<div style="color:var(--muted);font-family:var(--fd);font-size:0.7rem;letter-spacing:2px">PROCESSING...</div>';
+  const{data:bk}=await sb.from('bookings').select('*').eq('qr_token',token).single();
+  if(!bk){res.innerHTML=`<div class="scan-status err">❌ INVALID QR CODE</div><div class="scan-detail">This QR code was not found in the system.</div>`;return}
+  const sa=allSeats.filter(s=>s.booking_id===bk.id);
+  const seatNums=sa.map(s=>s.seat_number).join(' · ')||'NOT ASSIGNED';
+  const busNames=[...new Set(sa.map(s=>s.buses?.name||'Bus'))].join(', ')||'—';
+  if(bk.attended){
+    res.innerHTML=`<div class="scan-name">${bk.name}</div><div class="scan-detail">Ref: ${bk.booking_ref}</div><div class="scan-seat">${seatNums}</div><div class="scan-detail">${busNames}</div><div class="scan-status err">⚠ ALREADY CHECKED IN<br><span style="font-size:0.65rem;font-family:var(--fb)">${bk.attended_at?new Date(bk.attended_at).toLocaleString():''}</span></div>`;return;
+  }
+  if(bk.payment_status!=='approved'||bk.status!=='confirmed'){
+    res.innerHTML=`<div class="scan-name">${bk.name}</div><div class="scan-detail">Ref: ${bk.booking_ref}</div><div class="scan-status err">❌ NOT APPROVED<br><span style="font-size:0.65rem;font-family:var(--fb)">Status: ${bk.status} · Payment: ${bk.payment_status}</span></div>`;return;
+  }
+  // Mark attendance
+  await sb.from('bookings').update({attended:true,attended_at:new Date().toISOString()}).eq('id',bk.id);
+  await loadBookings();
+  res.innerHTML=`<div class="scan-name">${bk.name}</div><div class="scan-detail">Ref: ${bk.booking_ref} · ${bk.seats} seat${bk.seats>1?'s':''}</div><div class="scan-seat">${seatNums}</div><div class="scan-detail">${busNames}</div><div class="scan-status ok">✅ CHECKED IN SUCCESSFULLY</div>`;
+}
+
+// ── ANALYTICS ──
+function renderAnalytics(){
+  renderMetrics();
+  const b=allBookings;
+  // Pie
+  const cnt={pending:0,confirmed:0,cancelled:0};b.forEach(x=>cnt[x.status]=(cnt[x.status]||0)+1);
+  const tot=b.length||1;const clrs={pending:'#FFB800',confirmed:'#00FFD1',cancelled:'#FF6B6B'};
+  const svg=document.getElementById('pie-svg');
+  if(svg){
+    svg.innerHTML='<circle cx="55" cy="55" r="40" fill="none" stroke="rgba(0,255,209,0.07)" stroke-width="26"/>';
+    const circ=2*Math.PI*40;let off=0;
+    Object.entries(cnt).forEach(([k,v])=>{if(!v)return;const pct=v/tot,dash=circ*pct,el=document.createElementNS('http://www.w3.org/2000/svg','circle');el.setAttribute('cx',55);el.setAttribute('cy',55);el.setAttribute('r',40);el.setAttribute('fill','none');el.setAttribute('stroke',clrs[k]);el.setAttribute('stroke-width',26);el.setAttribute('stroke-dasharray',`${dash} ${circ-dash}`);el.setAttribute('stroke-dashoffset',-off);el.setAttribute('transform','rotate(-90 55 55)');svg.appendChild(el);off+=dash});
+  }
+  const leg=document.getElementById('pie-legend');
+  if(leg)leg.innerHTML=Object.entries(cnt).map(([k,v])=>`<div class="leg-item2"><div class="leg-dot2" style="background:${clrs[k]}"></div>${k}: <strong style="color:var(--text);margin-left:2px">${v}</strong></div>`).join('');
+  // Seats bar
+  const sm={};b.forEach(x=>{const s=String(x.seats||1);sm[s]=(sm[s]||0)+1});
+  const sc=document.getElementById('seats-chart');
+  if(sc){const mx=Math.max(...Object.values(sm),1);sc.innerHTML=Object.entries(sm).sort((a,z)=>Number(a[0])-Number(z[0])).map(([k,v])=>`<div class="bwrap"><div class="bval">${v}</div><div class="bouter"><div class="binner" style="height:${(v/mx)*100}%"></div></div><div class="blabel">${k}s</div></div>`).join('')||'<div class="empty-state"><div class="empty-text">No data</div></div>'}
+  // City
+  const cm={};b.forEach(x=>{if(x.city)cm[x.city]=(cm[x.city]||0)+1});
+  const cc=document.getElementById('city-chart');
+  if(cc){const mc=Math.max(...Object.values(cm),1);cc.innerHTML=Object.entries(cm).sort((a,z)=>z[1]-a[1]).slice(0,8).map(([k,v])=>`<div class="city-row"><div class="city-name">${k}</div><div class="city-bar"><div class="city-fill" style="width:${(v/mc)*100}%"></div></div><div class="city-cnt">${v}</div></div>`).join('')||'<div class="empty-state"><div class="empty-text">No data</div></div>'}
+  // Age
+  const am={};b.forEach(x=>{if(x.age_group)am[x.age_group]=(am[x.age_group]||0)+1});
+  const ac=document.getElementById('age-chart');
+  if(ac){const ma=Math.max(...Object.values(am),1);const ord=['under-18','18-25','26-35','36-50','50+'];ac.innerHTML=ord.filter(k=>am[k]).map(k=>`<div class="bwrap"><div class="bval">${am[k]}</div><div class="bouter"><div class="binner" style="height:${(am[k]/ma)*100}%;background:linear-gradient(0deg,var(--neon2),rgba(123,97,255,0.3))"></div></div><div class="blabel">${k}</div></div>`).join('')||'<div class="empty-state"><div class="empty-text">No data</div></div>'}
+  // Payment status
+  const pm={unpaid:0,slip_uploaded:0,approved:0,rejected:0};b.forEach(x=>pm[x.payment_status]=(pm[x.payment_status]||0)+1);
+  const pc=document.getElementById('pay-chart');
+  if(pc){const mp=Math.max(...Object.values(pm),1);const pclrs={unpaid:'var(--neon3)',slip_uploaded:'var(--warn)',approved:'var(--neon)',rejected:'var(--neon3)'};pc.innerHTML=Object.entries(pm).map(([k,v])=>`<div class="bwrap"><div class="bval">${v}</div><div class="bouter"><div class="binner" style="height:${(v/mp)*100}%;background:${pclrs[k]||'var(--neon)'}"></div></div><div class="blabel">${k.replace('_',' ')}</div></div>`).join('')}
+  // Ref sources
+  const rm={};b.forEach(x=>{if(x.ref_source)rm[x.ref_source]=(rm[x.ref_source]||0)+1});
+  const rc=document.getElementById('ref-chart');
+  if(rc){const mr=Math.max(...Object.values(rm),1);rc.innerHTML=Object.entries(rm).sort((a,z)=>z[1]-a[1]).map(([k,v])=>`<div class="city-row"><div class="city-name">${k}</div><div class="city-bar"><div class="city-fill" style="width:${(v/mr)*100}%;background:linear-gradient(90deg,var(--neon2),var(--neon))"></div></div><div class="city-cnt">${v}</div></div>`).join('')||'<div class="empty-state"><div class="empty-text">No data</div></div>'}
+}
+
+// ── ADMINS ──
+async function loadAdmins(){
+  const{data}=await sb.from('admin_roles').select('*').order('added_at',{ascending:false});
+  const el=document.getElementById('admin-list');if(!el)return;
+  if(!data||!data.length){el.innerHTML='<div style="color:var(--muted);font-size:0.8rem">No admins found.</div>';return}
+  const me=currentUser?.id;
+  el.innerHTML=data.map(a=>`<div class="admin-item">
+    <div><div class="admin-email">${a.email}</div><div style="font-size:0.65rem;color:var(--muted);margin-top:2px">${a.added_at?new Date(a.added_at).toLocaleDateString():''}</div></div>
+    <div style="display:flex;align-items:center;gap:0.6rem">
+      <span class="badge ${a.role}">${a.role.replace('_',' ').toUpperCase()}</span>
+      ${a.user_id!==me?`<button class="abt red" onclick="removeAdmin('${a.id}')">Remove</button>`:'<span style="font-size:0.62rem;color:var(--muted)">(you)</span>'}
+    </div>
+  </div>`).join('');
+}
+async function addAdmin(){
+  const email=document.getElementById('new-admin-email').value.trim();
+  const role=document.getElementById('new-admin-role').value;
+  if(!email){showToast('Enter an email address');return}
+  const{data:existing}=await sb.from('admin_roles').select('id').eq('email',email).single();
+  if(existing){showToast('Admin already exists');return}
+  const{error}=await sb.from('admin_roles').insert([{email,role,user_id:null}]);
+  if(error){showToast('Error: '+error.message);return}
+  document.getElementById('new-admin-email').value='';
+  showToast('Admin added');loadAdmins();
+}
+async function removeAdmin(id){
+  if(!confirm('Remove this admin?'))return;
+  const{error}=await sb.from('admin_roles').delete().eq('id',id);
+  if(error){showToast('Error: '+error.message);return}
+  showToast('Admin removed');loadAdmins();
+}
+
+// ── SETTINGS ──
+async function loadConfig(){
+  const{data}=await sb.from('trip_config').select('key,value');
+  if(!data)return;const cfg={};data.forEach(r=>cfg[r.key]=r.value);
+  if(cfg.trip_date)document.getElementById('s-date').value=cfg.trip_date;
+  if(cfg.ticket_price)document.getElementById('s-price').value=cfg.ticket_price;
+  if(cfg.total_capacity)document.getElementById('s-capacity').value=cfg.total_capacity;
+  if(cfg.org_name)document.getElementById('s-orgname').value=cfg.org_name;
+  if(cfg.contact_email)document.getElementById('s-email').value=cfg.contact_email;
+  if(cfg.contact_phone)document.getElementById('s-phone').value=cfg.contact_phone;
+  if(cfg.bank_name)document.getElementById('s-bank').value=cfg.bank_name;
+  if(cfg.bank_account)document.getElementById('s-acc').value=cfg.bank_account;
+  if(cfg.bank_branch)document.getElementById('s-branch').value=cfg.bank_branch;
+  if(cfg.trip_name)document.getElementById('s-tripname').value=cfg.trip_name;
+  document.getElementById('s-open').checked=cfg.bookings_open!=='false';
+  document.getElementById('s-show-price').checked=cfg.show_price==='true';
+}
+async function loadConfigUI(){await loadConfig()}
+async function cfgUpdate(updates){
+  for(const u of updates){
+    const{error}=await sb.from('trip_config').upsert({key:u.key,value:u.value});
+    if(error){showToast('Error: '+error.message);return false}
+  }
+  return true;
+}
+async function saveOrgSettings(){if(await cfgUpdate([{key:'org_name',value:document.getElementById('s-orgname').value},{key:'contact_email',value:document.getElementById('s-email').value},{key:'contact_phone',value:document.getElementById('s-phone').value}]))showToast('Org settings saved')}
+async function saveTripConfig(){if(await cfgUpdate([{key:'trip_name',value:document.getElementById('s-tripname').value},{key:'trip_date',value:document.getElementById('s-date').value},{key:'ticket_price',value:document.getElementById('s-price').value},{key:'total_capacity',value:document.getElementById('s-capacity').value}]))showToast('Trip config saved')}
+async function savePaymentConfig(){if(await cfgUpdate([{key:'bank_name',value:document.getElementById('s-bank').value},{key:'bank_account',value:document.getElementById('s-acc').value},{key:'bank_branch',value:document.getElementById('s-branch').value}]))showToast('Payment details saved')}
+async function saveToggles(){if(await cfgUpdate([{key:'bookings_open',value:document.getElementById('s-open').checked?'true':'false'},{key:'show_price',value:document.getElementById('s-show-price').checked?'true':'false'}]))showToast('Controls saved')}
+
+// ── LOGO ──
+function previewLogo(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('logo-preview-img').src=e.target.result;
+    document.getElementById('logo-preview-name').textContent=file.name;
+    document.getElementById('logo-preview').style.display='flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── EXPORT ──
+function exportCSV(){
+  if(!allBookings.length){showToast('No bookings to export');return}
+  const hdrs=['Ref','Name','Email','Phone','Seats','City','Age','Source','Notes','Payment','Status','Attended','Submitted'];
+  const rows=allBookings.map(b=>[b.booking_ref,b.name,b.email,b.phone,b.seats,b.city,b.age_group,b.ref_source,b.notes||'',b.payment_status,b.status,b.attended?'Yes':'No',fmtDate(b.created_at)].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','));
+  const csv=[hdrs.join(','),...rows].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`peak-bookings-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  showToast('CSV exported');
+}
+async function deleteAll(){
+  if(!confirm('⚠️ Permanently delete ALL bookings from the database?'))return;
+  const{error}=await sb.from('seat_assignments').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  await sb.from('bookings').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  allBookings=[];allSeats=[];renderMetrics();renderActive();showToast('All bookings deleted');
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.getElementById('assign-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('assign-modal')});
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
+</script>
+</body>
+</html>
