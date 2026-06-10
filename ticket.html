@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEAK | Your Ticket</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --neon:#00FFD1;--neon2:#7B61FF;--neon3:#FF6B6B;
+  --dark:#040D12;--dark2:#081822;--dark3:#0D2233;
+  --border-neon:rgba(0,255,209,0.22);
+  --text:#E8F4F8;--muted:#7A9BAD;
+  --fd:'Orbitron',monospace;--fb:'Space Grotesk',sans-serif;
+}
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent}
+body{background:var(--dark);color:var(--text);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,209,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,209,0.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.scan-line{position:fixed;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--neon),transparent);z-index:1;pointer-events:none;animation:scan 10s linear infinite;opacity:0.2}
+@keyframes scan{0%{top:-2px}100%{top:100vh}}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0.85rem 2rem;background:rgba(4,13,18,0.92);backdrop-filter:blur(24px);border-bottom:1px solid var(--border-neon);z-index:200;gap:1rem}
+.nav-logo{display:flex;align-items:center;gap:0.7rem}
+.nav-logo img{width:34px;height:34px;object-fit:contain;filter:brightness(0) invert(1)}
+.logo-text{font-family:var(--fd);font-size:1.1rem;font-weight:900;color:var(--neon);letter-spacing:4px}
+.logo-text span{color:var(--muted);font-size:0.45rem;display:block;letter-spacing:5px;margin-top:-2px}
+.nav-back{background:transparent;border:1px solid var(--border-neon);color:var(--muted);padding:0.45rem 1rem;font-family:var(--fd);font-size:0.55rem;letter-spacing:2px;cursor:pointer;transition:all 0.3s;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.nav-back:hover{color:var(--neon);border-color:var(--neon)}
+
+/* PAGE */
+.page-wrap{position:relative;z-index:2;padding:100px 1.5rem 4rem;max-width:600px;margin:0 auto}
+
+/* SEARCH */
+.search-box{background:rgba(0,255,209,0.04);border:1px solid var(--border-neon);padding:2rem;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));position:relative;margin-bottom:2rem}
+.search-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent)}
+.search-title{font-family:var(--fd);font-size:0.7rem;letter-spacing:3px;color:var(--neon);margin-bottom:0.5rem;text-transform:uppercase}
+.search-sub{font-size:0.82rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.6}
+.search-row{display:flex;gap:0.6rem}
+.search-input{flex:1;background:rgba(0,0,0,0.45);border:1px solid var(--border-neon);color:var(--text);padding:0.75rem 1rem;font-family:var(--fb);font-size:0.88rem;outline:none;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);transition:border-color 0.3s}
+.search-input:focus{border-color:var(--neon)}
+.search-input::placeholder{color:var(--muted)}
+.search-btn{background:var(--neon);color:var(--dark);border:none;padding:0.75rem 1.5rem;font-family:var(--fd);font-size:0.6rem;font-weight:700;letter-spacing:2px;cursor:pointer;clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%);transition:all 0.3s;flex-shrink:0}
+.search-btn:hover{box-shadow:0 0 20px rgba(0,255,209,0.3)}
+
+/* TICKET */
+.ticket-wrap{display:none}
+.ticket-actions{display:flex;gap:0.6rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.act-btn{padding:0.6rem 1.2rem;font-family:var(--fd);font-size:0.55rem;letter-spacing:2px;cursor:pointer;transition:all 0.3s;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);border:none;display:inline-flex;align-items:center;gap:6px}
+.act-btn.png{background:var(--neon);color:var(--dark)}
+.act-btn.png:hover{box-shadow:0 0 20px rgba(0,255,209,0.35)}
+.act-btn.pdf{background:rgba(123,97,255,0.15);color:var(--neon2);border:1px solid rgba(123,97,255,0.4)}
+.act-btn.pdf:hover{background:rgba(123,97,255,0.25)}
+.act-btn.share{background:rgba(0,255,209,0.08);color:var(--neon);border:1px solid var(--border-neon)}
+
+/* TICKET CARD */
+#ticket-card{
+  background:linear-gradient(145deg,#040D12 0%,#081822 40%,#0D2233 100%);
+  border:1px solid var(--border-neon);
+  padding:2rem;
+  position:relative;
+  overflow:hidden;
+  font-family:var(--fb);
+}
+#ticket-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--neon),transparent)}
+#ticket-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--neon2),transparent)}
+.ticket-bg-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;height:400px;background:radial-gradient(circle,rgba(0,255,209,0.04) 0%,transparent 70%);pointer-events:none}
+.ticket-bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,209,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,209,0.02) 1px,transparent 1px);background-size:30px 30px;pointer-events:none}
+.ticket-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;position:relative;z-index:1}
+.ticket-org{display:flex;align-items:center;gap:0.7rem}
+.ticket-logo{width:40px;height:40px;object-fit:contain;filter:brightness(0) invert(1)}
+.ticket-logo-placeholder{width:40px;height:40px;background:rgba(0,255,209,0.1);border:1px solid var(--border-neon);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:0.65rem;color:var(--neon)}
+.ticket-org-name{font-family:var(--fd);font-size:0.9rem;font-weight:900;color:var(--neon);letter-spacing:3px}
+.ticket-org-sub{font-size:0.55rem;color:var(--muted);letter-spacing:4px;margin-top:1px}
+.ticket-status-badge{font-family:var(--fd);font-size:0.52rem;letter-spacing:2px;padding:0.3rem 0.8rem;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
+.ticket-status-badge.confirmed{background:rgba(0,255,209,0.15);color:var(--neon);border:1px solid rgba(0,255,209,0.3)}
+.ticket-status-badge.pending{background:rgba(255,184,0,0.15);color:#FFB800;border:1px solid rgba(255,184,0,0.3)}
+.ticket-status-badge.cancelled{background:rgba(255,107,107,0.15);color:var(--neon3);border:1px solid rgba(255,107,107,0.3)}
+.ticket-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,209,0.2),transparent);margin:1.2rem 0;position:relative;z-index:1}
+.ticket-divider::before,.ticket-divider::after{content:'◈';position:absolute;top:50%;transform:translateY(-50%);font-size:0.6rem;color:rgba(0,255,209,0.3)}
+.ticket-divider::before{left:0}
+.ticket-divider::after{right:0}
+.ticket-name{font-family:var(--fd);font-size:clamp(1.3rem,4vw,1.8rem);font-weight:900;color:var(--text);letter-spacing:2px;margin-bottom:0.3rem;position:relative;z-index:1}
+.ticket-institution{font-size:0.82rem;color:var(--muted);margin-bottom:0.2rem;position:relative;z-index:1}
+.ticket-rank{font-family:var(--fd);font-size:0.65rem;color:var(--neon2);letter-spacing:2px;margin-bottom:1.2rem;position:relative;z-index:1}
+.ticket-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-bottom:1.5rem;position:relative;z-index:1}
+.ticket-info-item{background:rgba(0,0,0,0.3);border:1px solid rgba(0,255,209,0.1);padding:0.6rem 0.8rem;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
+.ti-label{font-family:var(--fd);font-size:0.45rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+.ti-val{font-size:0.82rem;color:var(--text);font-weight:500}
+.ticket-qr-section{display:flex;align-items:center;gap:1.5rem;position:relative;z-index:1;flex-wrap:wrap}
+.ticket-qr-wrap{flex-shrink:0;background:#fff;padding:10px;border-radius:4px;border:2px solid rgba(0,255,209,0.3)}
+.ticket-qr-wrap img{display:block;width:130px;height:130px}
+.ticket-qr-info{flex:1;min-width:160px}
+.ticket-qr-label{font-family:var(--fd);font-size:0.52rem;letter-spacing:3px;color:var(--neon);margin-bottom:0.5rem;text-transform:uppercase}
+.ticket-qr-desc{font-size:0.78rem;color:var(--muted);line-height:1.7;margin-bottom:0.8rem}
+.ticket-ref{font-family:monospace;font-size:0.75rem;color:rgba(0,255,209,0.6);background:rgba(0,0,0,0.3);padding:0.3rem 0.6rem;border:1px solid rgba(0,255,209,0.15);display:inline-block;letter-spacing:1px;word-break:break-all}
+.ticket-footer{margin-top:1.2rem;padding-top:1rem;border-top:1px solid rgba(0,255,209,0.1);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;position:relative;z-index:1}
+.ticket-footer-left{font-size:0.68rem;color:var(--muted);line-height:1.6}
+.ticket-footer-right{font-family:var(--fd);font-size:0.55rem;color:rgba(0,255,209,0.4);letter-spacing:2px}
+.ticket-food{display:inline-block;font-family:var(--fd);font-size:0.48rem;letter-spacing:2px;padding:2px 8px;margin-top:4px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
+.ticket-food.veg{background:rgba(0,255,100,0.12);color:#00FF88;border:1px solid rgba(0,255,100,0.25)}
+.ticket-food.non-veg{background:rgba(255,107,107,0.12);color:#FF8888;border:1px solid rgba(255,107,107,0.25)}
+.not-found{text-align:center;padding:3rem 2rem;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.2);clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));display:none}
+.not-found p{color:var(--neon3);font-family:var(--fd);font-size:0.75rem;letter-spacing:2px}
+.loading-msg{text-align:center;padding:2rem;color:var(--muted);font-family:var(--fd);font-size:0.7rem;letter-spacing:3px;display:none}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scan-line"></div>
+
+<nav>
+  <div class="nav-logo">
+    <img src="logo.png" alt="PEAK" onerror="this.style.display='none'">
+    <div class="logo-text">PEAK<span>ADVENTURES</span></div>
+  </div>
+  <a href="index.html" class="nav-back">← BACK TO SITE</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="search-box">
+    <div class="search-title">◈ Retrieve Your Ticket</div>
+    <p class="search-sub">Enter your email address or booking reference to view and download your ticket.</p>
+    <div class="search-row">
+      <input class="search-input" type="text" id="search-input" placeholder="Email or PEAK-XXXXXX" onkeydown="if(event.key==='Enter')findTicket()">
+      <button class="search-btn" onclick="findTicket()">⟢ FIND</button>
+    </div>
+  </div>
+
+  <div class="loading-msg" id="loading-msg">⟳ SEARCHING...</div>
+  <div class="not-found" id="not-found"><p>❌ No booking found.<br>Check your email or booking reference.</p></div>
+
+  <div class="ticket-wrap" id="ticket-wrap">
+    <div class="ticket-actions">
+      <button class="act-btn png" onclick="downloadPNG()">⬇ Download PNG</button>
+      <button class="act-btn pdf" onclick="downloadPDF()">⬇ Download PDF</button>
+      <button class="act-btn share" onclick="shareTicket()">↗ Share</button>
+    </div>
+    <div id="ticket-card">
+      <div class="ticket-bg-glow"></div>
+      <div class="ticket-bg-grid"></div>
+      <div class="ticket-header">
+        <div class="ticket-org">
+          <img src="logo.png" class="ticket-logo" alt="PEAK" onerror="this.outerHTML='<div class=ticket-logo-placeholder>P</div>'">
+          <div>
+            <div class="ticket-org-name">PEAK</div>
+            <div class="ticket-org-sub">ADVENTURES · SRI LANKA</div>
+          </div>
+        </div>
+        <div class="ticket-status-badge" id="t-status-badge">CONFIRMED</div>
+      </div>
+      <div class="ticket-divider"></div>
+      <div class="ticket-name" id="t-name">—</div>
+      <div class="ticket-institution" id="t-institution">—</div>
+      <div class="ticket-rank" id="t-rank">—</div>
+      <div class="ticket-info-grid">
+        <div class="ticket-info-item"><div class="ti-label">Booking Ref</div><div class="ti-val" id="t-ref" style="font-family:monospace;color:var(--neon);font-size:0.78rem">—</div></div>
+        <div class="ticket-info-item"><div class="ti-label">Seats</div><div class="ti-val" id="t-seats">—</div></div>
+        <div class="ticket-info-item"><div class="ti-label">Trip</div><div class="ti-val" id="t-trip">Nuwara Eliya</div></div>
+        <div class="ticket-info-item"><div class="ti-label">Date</div><div class="ti-val" id="t-date">TBA</div></div>
+        <div class="ticket-info-item"><div class="ti-label">NIC</div><div class="ti-val" id="t-nic">—</div></div>
+        <div class="ticket-info-item"><div class="ti-label">Town</div><div class="ti-val" id="t-town">—</div></div>
+      </div>
+      <div class="ticket-qr-section">
+        <div class="ticket-qr-wrap">
+          <img id="t-qr" src="" alt="QR Code">
+        </div>
+        <div class="ticket-qr-info">
+          <div class="ticket-qr-label">Check-in QR Code</div>
+          <p class="ticket-qr-desc">Show this QR code at the entrance gate on the day of the trip.</p>
+          <div class="ticket-ref" id="t-token">—</div>
+          <div id="t-food-badge" style="margin-top:8px"></div>
+        </div>
+      </div>
+      <div class="ticket-footer">
+        <div class="ticket-footer-left">
+          PEAK Adventures · Nuwara Eliya Day Expedition<br>
+          <span id="t-footer-date">—</span>
+        </div>
+        <div class="ticket-footer-right">PEAK · SRI LANKA</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://ehzxoapgandezbhuvjrd.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoenhvYXBnYW5kZXpiaHV2anJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NzE0NDcsImV4cCI6MjA5NjQ0NzQ0N30.aR68BbL-X3TQoQNAhTKXizT5UvupYzYc13-nHs6xgDY';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+
+// Check URL params
+window.addEventListener('load',()=>{
+  const params=new URLSearchParams(window.location.search);
+  const ref=params.get('ref')||params.get('email');
+  if(ref){document.getElementById('search-input').value=ref;findTicket()}
+});
+
+async function findTicket(){
+  const q=document.getElementById('search-input').value.trim();
+  if(!q)return;
+  document.getElementById('loading-msg').style.display='block';
+  document.getElementById('not-found').style.display='none';
+  document.getElementById('ticket-wrap').style.display='none';
+  try{
+    const{data}=await sb.from('bookings').select('*').or(`email.eq.${q},booking_ref.eq.${q.toUpperCase()}`).limit(1).single();
+    document.getElementById('loading-msg').style.display='none';
+    if(!data){document.getElementById('not-found').style.display='block';return}
+    renderTicket(data);
+  }catch(e){
+    document.getElementById('loading-msg').style.display='none';
+    document.getElementById('not-found').style.display='block';
+  }
+}
+
+async function renderTicket(b){
+  // Get trip config
+  const{data:cfg}=await sb.from('trip_config').select('key,value');
+  const config={};(cfg||[]).forEach(r=>config[r.key]=r.value);
+  const tripDate=config.trip_date?new Date(config.trip_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'TBA';
+  const tripName=config.trip_name||'Nuwara Eliya Day Expedition';
+  // Status badge
+  const badge=document.getElementById('t-status-badge');
+  badge.textContent=b.status.toUpperCase();
+  badge.className='ticket-status-badge '+b.status;
+  // Fields
+  document.getElementById('t-name').textContent=b.name;
+  document.getElementById('t-institution').textContent=b.institution||b.city||'—';
+  document.getElementById('t-rank').textContent=b.district_rank?`District Rank #${b.district_rank}`:'';
+  document.getElementById('t-ref').textContent=b.booking_ref||'—';
+  document.getElementById('t-seats').textContent=b.seats;
+  document.getElementById('t-trip').textContent=tripName;
+  document.getElementById('t-date').textContent=tripDate;
+  document.getElementById('t-nic').textContent=b.nic_number||'—';
+  document.getElementById('t-town').textContent=b.nearest_town||b.city||'—';
+  document.getElementById('t-token').textContent=b.booking_ref||'—';
+  document.getElementById('t-footer-date').textContent=tripDate;
+  // Food badge
+  if(b.food_preference){
+    document.getElementById('t-food-badge').innerHTML=`<span class="ticket-food ${b.food_preference}">${b.food_preference==='veg'?'🌿 VEGETARIAN':'🍗 NON-VEG'}</span>`;
+  }
+  // QR Code
+  const qrData=b.qr_token||b.booking_ref||b.id;
+  document.getElementById('t-qr').src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&bgcolor=ffffff&color=000000&margin=2`;
+  // Show ticket
+  document.getElementById('ticket-wrap').style.display='block';
+  document.getElementById('ticket-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function downloadPNG(){
+  const card=document.getElementById('ticket-card');
+  const canvas=await html2canvas(card,{
+    scale:3,backgroundColor:'#040D12',
+    useCORS:true,allowTaint:true,
+    logging:false
+  });
+  const link=document.createElement('a');
+  link.download=`PEAK-Ticket-${document.getElementById('t-ref').textContent}.png`;
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
+async function downloadPDF(){
+  const card=document.getElementById('ticket-card');
+  const canvas=await html2canvas(card,{
+    scale:2,backgroundColor:'#040D12',
+    useCORS:true,allowTaint:true,logging:false
+  });
+  const{jsPDF}=window.jspdf;
+  const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const imgData=canvas.toDataURL('image/png');
+  const pdfW=pdf.internal.pageSize.getWidth();
+  const pdfH=(canvas.height*pdfW)/canvas.width;
+  pdf.addImage(imgData,'PNG',0,10,pdfW,pdfH);
+  pdf.save(`PEAK-Ticket-${document.getElementById('t-ref').textContent}.pdf`);
+}
+
+async function shareTicket(){
+  const ref=document.getElementById('t-ref').textContent;
+  const url=`${window.location.origin}/ticket.html?ref=${ref}`;
+  if(navigator.share){
+    navigator.share({title:'PEAK Adventures Ticket',text:`My ticket for the PEAK Nuwara Eliya Day Expedition`,url});
+  } else {
+    await navigator.clipboard.writeText(url);
+    alert('Ticket link copied to clipboard!');
+  }
+}
+</script>
+</body>
+</html>
