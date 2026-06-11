@@ -258,6 +258,10 @@ footer{position:relative;z-index:2;background:var(--dark2);border-top:1px solid 
 .modal-close{background:var(--neon);color:var(--dark);border:none;padding:0.7rem 2.2rem;font-family:var(--font-d);font-size:0.65rem;letter-spacing:2px;cursor:pointer;transition:all 0.3s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)}
 .reveal{opacity:0;transform:translateY(28px);transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1),transform 0.8s cubic-bezier(0.16,1,0.3,1)}
 .reveal.visible{opacity:1;transform:translateY(0)}
+.countdown-box{background:rgba(0,255,209,0.06);border:1px solid var(--border-neon);padding:0.6rem 0.8rem;min-width:60px;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
+.cd-num{font-family:var(--font-d);font-size:1.5rem;font-weight:700;color:var(--neon);text-shadow:0 0 16px rgba(0,255,209,0.3)}
+.cd-lbl{font-size:0.5rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.countdown-sep{font-family:var(--font-d);font-size:1.5rem;color:var(--neon);align-self:center;opacity:0.4}
 #btt{position:fixed;bottom:1.5rem;right:1.5rem;width:42px;height:42px;background:var(--dark2);border:1px solid var(--border-neon);color:var(--neon);font-size:1.1rem;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:100;transition:all 0.3s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
 #btt.show{display:flex}
 #btt:hover{background:var(--neon);color:var(--dark)}
@@ -322,6 +326,18 @@ footer{position:relative;z-index:2;background:var(--dark2);border-top:1px solid 
       <div class="stat"><div class="stat-num">3+</div><div class="stat-label">Destinations</div></div>
       <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Curated</div></div>
       <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Memories</div></div>
+    </div>
+    <div id="countdown-wrap" style="display:none;margin-top:2.5rem;text-align:center">
+      <div style="font-family:var(--font-d);font-size:0.55rem;letter-spacing:4px;color:var(--muted);margin-bottom:0.8rem;text-transform:uppercase">◈ Trip Countdown</div>
+      <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap" id="countdown-timer">
+        <div class="countdown-box" id="cd-days"><div class="cd-num">00</div><div class="cd-lbl">Days</div></div>
+        <div class="countdown-sep">:</div>
+        <div class="countdown-box" id="cd-hours"><div class="cd-num">00</div><div class="cd-lbl">Hours</div></div>
+        <div class="countdown-sep">:</div>
+        <div class="countdown-box" id="cd-mins"><div class="cd-num">00</div><div class="cd-lbl">Mins</div></div>
+        <div class="countdown-sep">:</div>
+        <div class="countdown-box" id="cd-secs"><div class="cd-num">00</div><div class="cd-lbl">Secs</div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -409,6 +425,14 @@ footer{position:relative;z-index:2;background:var(--dark2);border-top:1px solid 
       <div class="form-group"><label class="form-label">Nearest Town *</label><input class="form-input" id="f-town" type="text" placeholder="e.g. Kandy, Matale"></div>
       <div class="form-group"><label class="form-label">Food Preference *</label><select class="form-select" id="f-food"><option value="">Select preference</option><option value="veg">🌿 Vegetarian</option><option value="non-veg">🍗 Non-Vegetarian</option></select></div>
       <div class="form-group"><label class="form-label">How did you hear about us?</label><select class="form-select" id="f-ref"><option value="">Select</option><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="friend">Friend</option><option value="whatsapp">WhatsApp</option><option value="other">Other</option></select></div>
+      <div class="form-group full">
+        <label class="form-label">Telegram Username (Optional — for instant notifications)</label>
+        <div style="position:relative">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.9rem;pointer-events:none">@</span>
+          <input class="form-input" id="f-telegram" type="text" placeholder="your_telegram_username" style="padding-left:1.8rem">
+        </div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:0.4rem;line-height:1.5">📱 Search <strong style="color:var(--neon)">@peak_nuwara_bot</strong> on Telegram and press Start to receive instant booking updates.</div>
+      </div>
       <div class="form-group full"><label class="form-label">Special Requirements</label><textarea class="form-textarea" id="f-notes" placeholder="Medical conditions, accessibility needs..."></textarea></div>
       <div class="form-group full">
         <label class="form-label">Payment Slip *</label>
@@ -510,6 +534,10 @@ async function loadConfig(){
       document.getElementById('payment-info-box').style.display='block';
     }
     if(cfg.contact_email)document.getElementById('footer-email').textContent=cfg.contact_email;
+    // countdown
+    if(cfg.trip_date&&cfg.trip_date.trim()){
+      startCountdown(new Date(cfg.trip_date));
+    }
     // seats left
     if(cfg.total_capacity){
       const{data:bkd}=await sb.from('bookings').select('seats').neq('status','cancelled');
@@ -541,6 +569,28 @@ function genRef(){return'PEAK-'+Math.random().toString(36).substring(2,8).toUppe
 function genToken(){return'TKN-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).substring(2,8).toUpperCase()}
 
 // SUBMIT
+function startCountdown(targetDate){
+  const wrap=document.getElementById('countdown-wrap');
+  function update(){
+    const now=new Date();
+    const diff=targetDate-now;
+    if(diff<=0){
+      wrap.style.display='none';return;
+    }
+    wrap.style.display='block';
+    const days=Math.floor(diff/(1000*60*60*24));
+    const hours=Math.floor((diff%(1000*60*60*24))/(1000*60*60));
+    const mins=Math.floor((diff%(1000*60*60))/(1000*60));
+    const secs=Math.floor((diff%(1000*60))/1000);
+    document.querySelector('#cd-days .cd-num').textContent=String(days).padStart(2,'0');
+    document.querySelector('#cd-hours .cd-num').textContent=String(hours).padStart(2,'0');
+    document.querySelector('#cd-mins .cd-num').textContent=String(mins).padStart(2,'0');
+    document.querySelector('#cd-secs .cd-num').textContent=String(secs).padStart(2,'0');
+  }
+  update();
+  setInterval(update,1000);
+}
+
 async function submitForm(){
   const g=id=>document.getElementById(id)?.value?.trim();
   const fname=g('f-fname'),email=g('f-email'),phone=g('f-phone'),
@@ -572,7 +622,8 @@ async function submitForm(){
       }catch(e){console.warn('Slip upload error:',e)}
     }
     // Insert booking
-    const booking={booking_ref:ref,name:fname,email,phone,seats:1,city:town,nic_number:nic,institution,district_rank:parseInt(rank)||null,nearest_town:town,food_preference:food,ref_source:g('f-ref'),notes:g('f-notes'),status:'pending',payment_status:paymentStatus,payment_slip_url:slipUrl||null,qr_token:token};
+    const tg=g('f-telegram')?.replace('@','').trim()||null;
+    const booking={booking_ref:ref,name:fname,email,phone,seats:1,city:town,nic_number:nic,institution,district_rank:parseInt(rank)||null,nearest_town:town,food_preference:food,telegram_username:tg,ref_source:g('f-ref'),notes:g('f-notes'),status:'pending',payment_status:paymentStatus,payment_slip_url:slipUrl||null,qr_token:token};
     const{error:dbErr}=await sb.from('bookings').insert([booking]);
     if(dbErr)throw dbErr;
     // Send emails
@@ -581,7 +632,7 @@ async function submitForm(){
       await fetch(`${SB_URL}/functions/v1/send-qr-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify({type:'admin_notify',booking})});
     }catch(e){console.warn('Email error',e)}
     // Clear
-    ['f-fname','f-email','f-phone','f-nic','f-institution','f-rank','f-town','f-food','f-ref','f-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+    ['f-fname','f-email','f-phone','f-nic','f-institution','f-rank','f-town','f-food','f-ref','f-notes','f-telegram'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
     document.getElementById('f-slip').value='';
     document.getElementById('upload-preview').style.display='none';
     document.getElementById('modal-ref').textContent=ref;

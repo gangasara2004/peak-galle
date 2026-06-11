@@ -366,11 +366,14 @@ td.md{color:var(--muted);font-size:0.72rem}
       <div class="tbl-wrap">
         <div class="tbl-hdr">
           <div class="tbl-title">Payment Slip Review</div>
-          <div class="ftabs">
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+            <button class="tb-btn" onclick="bulkSendQR()" style="border-color:var(--neon);color:var(--neon)">📧 BULK SEND QR</button>
+            <div class="ftabs">
             <button class="ftab active" onclick="setF('all',this,'p')">All</button>
             <button class="ftab" onclick="setF('slip_uploaded',this,'p')">Needs Review</button>
             <button class="ftab" onclick="setF('approved',this,'p')">Approved</button>
             <button class="ftab" onclick="setF('rejected',this,'p')">Rejected</button>
+          </div>
           </div>
         </div>
         <div class="tbl-scroll"><table><thead><tr><th>Ref</th><th>Name</th><th>Email</th><th>Seats</th><th>Slip</th><th>Payment</th><th>QR Sent</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="tb-p"></tbody></table></div>
@@ -451,6 +454,18 @@ td.md{color:var(--muted);font-size:0.72rem}
           </div>
           <div class="scanner-result" id="scanner-result"></div>
         </div>
+        <div style="margin-top:1.5rem;background:var(--card);border:1px solid var(--border);padding:1.2rem;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))">
+          <div style="font-family:var(--fd);font-size:0.62rem;letter-spacing:2px;color:var(--muted);margin-bottom:0.8rem;text-transform:uppercase">Live Attendance</div>
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+            <div><div style="font-family:var(--fd);font-size:2rem;font-weight:700;color:var(--neon)" id="att-count">0</div><div style="font-size:0.65rem;color:var(--muted);letter-spacing:2px">CHECKED IN</div></div>
+            <div><div style="font-family:var(--fd);font-size:2rem;font-weight:700;color:var(--neon2)" id="att-total">0</div><div style="font-size:0.65rem;color:var(--muted);letter-spacing:2px">CONFIRMED</div></div>
+            <div><div style="font-family:var(--fd);font-size:2rem;font-weight:700;color:var(--warn)" id="att-pending">0</div><div style="font-size:0.65rem;color:var(--muted);letter-spacing:2px">NOT YET</div></div>
+          </div>
+          <div style="margin-top:0.8rem;height:6px;background:rgba(0,255,209,0.1);border-radius:3px;overflow:hidden">
+            <div id="att-bar" style="height:100%;background:linear-gradient(90deg,var(--neon),var(--neon2));border-radius:3px;transition:width 0.5s;width:0%"></div>
+          </div>
+          <button onclick="printAttendance()" style="margin-top:1rem;background:transparent;border:1px solid var(--border);color:var(--neon);padding:0.45rem 1rem;font-family:var(--fd);font-size:0.52rem;letter-spacing:2px;cursor:pointer;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)">🖨 PRINT ATTENDANCE LIST</button>
+        </div>
       </div>
     </div>
 
@@ -461,6 +476,7 @@ td.md{color:var(--muted);font-size:0.72rem}
         <div class="chart-card"><div class="chart-title">Status Breakdown</div><div class="pie-wrap"><svg width="110" height="110" viewBox="0 0 110 110" id="pie-svg"><circle cx="55" cy="55" r="40" fill="none" stroke="rgba(0,255,209,0.07)" stroke-width="26"/></svg><div class="pie-legend" id="pie-legend"></div></div></div>
         <div class="chart-card"><div class="chart-title">Seats per Booking</div><div class="bar-chart" id="seats-chart"></div></div>
         <div class="chart-card"><div class="chart-title">Top Cities</div><div class="city-list" id="city-chart"></div></div>
+        <div class="chart-card"><div class="chart-title">Food Preference</div><div style="display:flex;gap:2rem;align-items:center;padding:1rem 0" id="food-chart"></div></div>
         <div class="chart-card"><div class="chart-title">Age Groups</div><div class="bar-chart" id="age-chart"></div></div>
         <div class="chart-card"><div class="chart-title">Payment Status</div><div class="bar-chart" id="pay-chart"></div></div>
         <div class="chart-card"><div class="chart-title">Referral Sources</div><div class="city-list" id="ref-chart"></div></div>
@@ -565,7 +581,15 @@ async function doLogin(){
   document.getElementById('l-err').style.display='none';
   const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){document.getElementById('l-err').style.display='block';document.getElementById('l-err').textContent=error.message;btn.disabled=false;btn.textContent='⟢ ACCESS DASHBOARD';return}
-  const{data:role}=await sb.from('admin_roles').select('role').eq('user_id',data.user.id).single();
+  // Check by user_id first, then by email (for admins added before first login)
+  let{data:role}=await sb.from('admin_roles').select('id,role').eq('user_id',data.user.id).single();
+  if(!role){
+    const{data:roleByEmail}=await sb.from('admin_roles').select('id,role').eq('email',data.user.email).single();
+    if(roleByEmail){
+      await sb.from('admin_roles').update({user_id:data.user.id}).eq('id',roleByEmail.id);
+      role=roleByEmail;
+    }
+  }
   if(!role){await sb.auth.signOut();document.getElementById('l-err').style.display='block';document.getElementById('l-err').textContent='Access denied. Not an admin.';btn.disabled=false;btn.textContent='⟢ ACCESS DASHBOARD';return}
   currentUser=data.user;userRole=role.role;
   document.getElementById('s-av').textContent=(data.user.email||'AD').slice(0,2).toUpperCase();
@@ -611,6 +635,7 @@ function showPage(id,el){
   const titles={dashboard:'Dashboard',payments:'Payment Review',bookings:'All Bookings',seats:'Bus & Seat Map',scanner:'QR Scanner',analytics:'Analytics',admins:'Admin Users',settings:'Settings'};
   document.getElementById('page-title').innerHTML='<span class="rtdot"></span>'+(titles[id]||id);
   if(id==='analytics')renderAnalytics();
+  if(id==='scanner')updateAttendanceCounter();
   if(id==='admins')loadAdmins();
   if(id==='settings')loadConfigUI();
   if(id==='seats'){renderBusTabs();renderSeatMap()}
@@ -759,7 +784,12 @@ function viewBooking(id){
   if(bk.status==='confirmed'&&bk.payment_status==='approved'&&!bk.qr_sent)acts.push(`<button class="am-btn assign" onclick="resendQR('${bk.id}');closeModal('assign-modal')">📧 SEND QR</button>`);
   if(bk.status!=='confirmed')acts.push(`<button class="am-btn confirm" onclick="quickStatus('${bk.id}','confirmed');closeModal('assign-modal')">✓ CONFIRM BOOKING</button>`);
   if(bk.status!=='cancelled')acts.push(`<button class="am-btn reject" onclick="quickStatus('${bk.id}','cancelled');closeModal('assign-modal')">✕ CANCEL BOOKING</button>`);
-  document.getElementById('am-actions').innerHTML=acts.join('');
+  // Add note field
+  const noteHtml=`<div style="width:100%;margin-top:0.8rem">
+    <div style="font-family:var(--fd);font-size:0.5rem;letter-spacing:2px;color:var(--muted);margin-bottom:0.35rem;text-transform:uppercase">Note to Booker (included in email)</div>
+    <textarea id="admin-note" style="width:100%;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:var(--text);padding:0.5rem 0.7rem;font-family:var(--fb);font-size:0.82rem;outline:none;resize:none;height:60px"placeholder="Optional note for booker..."></textarea>
+  </div>`;
+  document.getElementById('am-actions').innerHTML=acts.join('')+noteHtml;
   document.getElementById('assign-modal').classList.add('open');
 }
 function viewSlip(id){viewBooking(id)}
@@ -767,26 +797,26 @@ function viewSlip(id){viewBooking(id)}
 // ── PAYMENT APPROVAL ──
 async function approvePayment(id){
   const bk=allBookings.find(x=>x.id===id);if(!bk)return;
+  const note=document.getElementById('admin-note')?.value||'';
   await sb.from('bookings').update({payment_status:'approved',status:'confirmed'}).eq('id',id);
   const idx=allBookings.findIndex(x=>x.id===id);
   if(idx>-1){allBookings[idx].payment_status='approved';allBookings[idx].status='confirmed'}
   renderMetrics();renderActive();updateSlipBadge();
   showToast('✓ Payment approved');
-  // Get seat assignments for this booking
   const sa=allSeats.filter(s=>s.booking_id===id);
   const seatNums=sa.map(s=>s.seat_number);
   const busName=sa.length>0?(sa[0].buses?.name||'Bus 1'):'Bus 1';
-  // Send QR email
-  await sendQREmail(bk,seatNums,busName);
+  await sendQREmail({...bk,admin_note:note},seatNums,busName);
 }
 async function rejectPayment(id){
-  const reason=prompt('Reason for rejection (optional):');
   const bk=allBookings.find(x=>x.id===id);if(!bk)return;
+  const note=document.getElementById('admin-note')?.value||'';
+  const reason=note||prompt('Reason for rejection (shown to booker):')||'Slip unclear or payment mismatch.';
   await sb.from('bookings').update({payment_status:'rejected'}).eq('id',id);
   const idx=allBookings.findIndex(x=>x.id===id);if(idx>-1)allBookings[idx].payment_status='rejected';
   renderMetrics();renderActive();updateSlipBadge();showToast('✕ Payment rejected');
   try{
-    await fetch(`${SB_URL}/functions/v1/send-qr-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify({type:'payment_rejected',booking:{...bk,reject_reason:reason||''}})});
+    await fetch(`${SB_URL}/functions/v1/send-qr-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify({type:'payment_rejected',booking:bk,extra:{reason}})});
   }catch(e){console.warn('Email error',e)}
 }
 async function sendQREmail(bk,seatNums,busName){
@@ -894,11 +924,15 @@ async function assignSeat(seatNum){
   const{error}=await sb.from('seat_assignments').insert([{booking_id:bookingId,bus_id:activeBusId,seat_number:seatNum}]);
   if(error){showToast('Error: '+error.message);return}
   await loadSeats();renderSeatMap();closeModal('assign-modal');showToast(`✓ Seat ${seatNum} assigned`);
-  // If this booking has qr_sent, re-send with seat info
+  // Send seat assignment notification
   const bk=allBookings.find(x=>x.id===bookingId);
-  if(bk&&bk.qr_sent){
+  if(bk&&bk.payment_status==='approved'){
     const sa=allSeats.filter(s=>s.booking_id===bookingId);
-    await sendQREmail(bk,sa.map(s=>s.seat_number),bus.name);
+    const seatNums=sa.map(s=>s.seat_number);
+    try{
+      await fetch(`${SB_URL}/functions/v1/send-qr-email`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},body:JSON.stringify({type:'seat_assigned',booking:{...bk,seat_numbers:seatNums,bus_name:bus.name}})});
+      showToast('📧 Seat assignment notification sent');
+    }catch(e){console.warn('Seat notify error',e)}
   }
 }
 async function unassignSeat(assignId){
@@ -964,6 +998,60 @@ function stopScanner(){
 }
 function manualScan(){const t=document.getElementById('manual-token').value.trim();if(t)processQR(t)}
 let lastScanned='',lastScanTime=0;
+function updateAttendanceCounter(){
+  const confirmed=allBookings.filter(b=>b.status==='confirmed'&&b.payment_status==='approved');
+  const attended=confirmed.filter(b=>b.attended);
+  const total=confirmed.length;
+  const cnt=attended.length;
+  document.getElementById('att-count').textContent=cnt;
+  document.getElementById('att-total').textContent=total;
+  document.getElementById('att-pending').textContent=total-cnt;
+  const pct=total>0?(cnt/total)*100:0;
+  document.getElementById('att-bar').style.width=pct+'%';
+}
+
+async function bulkSendQR(){
+  const approved=allBookings.filter(b=>b.payment_status==='approved'&&!b.qr_sent);
+  if(!approved.length){showToast('No pending QR emails to send');return}
+  if(!confirm(`Send QR emails to ${approved.length} approved bookings?`))return;
+  showToast(`Sending ${approved.length} QR emails...`);
+  let sent=0;
+  for(const bk of approved){
+    const sa=allSeats.filter(s=>s.booking_id===bk.id);
+    await sendQREmail(bk,sa.map(s=>s.seat_number),sa.length>0?(sa[0].buses?.name||'Bus 1'):'Bus 1');
+    sent++;
+  }
+  showToast(`✓ Sent ${sent} QR emails`);
+}
+
+function printAttendance(){
+  const confirmed=allBookings.filter(b=>b.status==='confirmed'&&b.payment_status==='approved');
+  const rows=confirmed.map(b=>{
+    const sa=allSeats.filter(s=>s.booking_id===b.id);
+    const seat=sa.map(s=>s.seat_number).join(', ')||'—';
+    const bus=sa.length>0?(sa[0].buses?.name||'Bus'):'—';
+    return`<tr style="border-bottom:1px solid #eee">
+      <td style="padding:6px 10px">${b.booking_ref||'—'}</td>
+      <td style="padding:6px 10px">${b.name}</td>
+      <td style="padding:6px 10px">${b.institution||'—'}</td>
+      <td style="padding:6px 10px;text-align:center">${b.district_rank?'#'+b.district_rank:'—'}</td>
+      <td style="padding:6px 10px">${bus}</td>
+      <td style="padding:6px 10px;text-align:center">${seat}</td>
+      <td style="padding:6px 10px">${b.food_preference||'—'}</td>
+      <td style="padding:6px 10px;text-align:center">${b.attended?'✓':''}</td>
+      <td style="padding:6px 10px"></td>
+    </tr>`;
+  }).join('');
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>PEAK Attendance List</title><style>body{font-family:Arial,sans-serif;font-size:12px}table{width:100%;border-collapse:collapse}th{background:#040D12;color:#00FFD1;padding:8px 10px;text-align:left;font-size:11px;letter-spacing:1px}h2{color:#040D12}@media print{button{display:none}}</style></head><body>
+    <h2>PEAK Adventures — Attendance List</h2>
+    <p>Printed: ${new Date().toLocaleString()} | Total: ${confirmed.length}</p>
+    <button onclick="window.print()" style="margin-bottom:10px;padding:6px 14px;background:#00FFD1;border:none;cursor:pointer;font-weight:bold">🖨 Print</button>
+    <table><thead><tr><th>Ref</th><th>Name</th><th>Institution</th><th>Rank</th><th>Bus</th><th>Seat</th><th>Food</th><th>Attended</th><th>Signature</th></tr></thead><tbody>${rows}</tbody></table>
+    </body></html>`);
+  win.document.close();
+}
+
 async function processQR(token){
   const now=Date.now();
   if(token===lastScanned&&now-lastScanTime<3000)return;
@@ -984,6 +1072,7 @@ async function processQR(token){
   // Mark attendance
   await sb.from('bookings').update({attended:true,attended_at:new Date().toISOString()}).eq('id',bk.id);
   await loadBookings();
+  updateAttendanceCounter();
   res.innerHTML=`<div class="scan-name">${bk.name}</div><div class="scan-detail">Ref: ${bk.booking_ref} · ${bk.seats} seat${bk.seats>1?'s':''}</div><div class="scan-seat">${seatNums}</div><div class="scan-detail">${busNames}</div><div class="scan-status ok">✅ CHECKED IN SUCCESSFULLY</div>`;
 }
 
@@ -1020,6 +1109,20 @@ function renderAnalytics(){
   if(pc){const mp=Math.max(...Object.values(pm),1);const pclrs={unpaid:'var(--neon3)',slip_uploaded:'var(--warn)',approved:'var(--neon)',rejected:'var(--neon3)'};pc.innerHTML=Object.entries(pm).map(([k,v])=>`<div class="bwrap"><div class="bval">${v}</div><div class="bouter"><div class="binner" style="height:${(v/mp)*100}%;background:${pclrs[k]||'var(--neon)'}"></div></div><div class="blabel">${k.replace('_',' ')}</div></div>`).join('')}
   // Ref sources
   const rm={};b.forEach(x=>{if(x.ref_source)rm[x.ref_source]=(rm[x.ref_source]||0)+1});
+  // Food preference
+  const vegCount=b.filter(x=>x.food_preference==='veg').length;
+  const nonVegCount=b.filter(x=>x.food_preference==='non-veg').length;
+  const fc=document.getElementById('food-chart');
+  if(fc)fc.innerHTML=`
+    <div style="text-align:center;flex:1">
+      <div style="font-family:var(--fd);font-size:2.5rem;font-weight:900;color:#00FF88">${vegCount}</div>
+      <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-top:4px">🌿 VEG</div>
+    </div>
+    <div style="width:1px;background:var(--border);align-self:stretch"></div>
+    <div style="text-align:center;flex:1">
+      <div style="font-family:var(--fd);font-size:2.5rem;font-weight:900;color:#FF8888">${nonVegCount}</div>
+      <div style="font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-top:4px">🍗 NON-VEG</div>
+    </div>`;
   const rc=document.getElementById('ref-chart');
   if(rc){const mr=Math.max(...Object.values(rm),1);rc.innerHTML=Object.entries(rm).sort((a,z)=>z[1]-a[1]).map(([k,v])=>`<div class="city-row"><div class="city-name">${k}</div><div class="city-bar"><div class="city-fill" style="width:${(v/mr)*100}%;background:linear-gradient(90deg,var(--neon2),var(--neon))"></div></div><div class="city-cnt">${v}</div></div>`).join('')||'<div class="empty-state"><div class="empty-text">No data</div></div>'}
 }

@@ -107,6 +107,34 @@ nav{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-
 .not-found{text-align:center;padding:3rem 2rem;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.2);clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));display:none}
 .not-found p{color:var(--neon3);font-family:var(--fd);font-size:0.75rem;letter-spacing:2px}
 .loading-msg{text-align:center;padding:2rem;color:var(--muted);font-family:var(--fd);font-size:0.7rem;letter-spacing:3px;display:none}
+.mob-action-bar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(4,13,18,0.97);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border-neon);
+  padding:0.8rem 1rem;
+  gap:0.5rem;
+  z-index:100;
+  flex-wrap:wrap;
+}
+.mob-action-bar.show{display:flex}
+.mob-act-btn{
+  flex:1;min-width:80px;
+  padding:0.7rem 0.5rem;
+  font-family:var(--fd);font-size:0.52rem;letter-spacing:1.5px;
+  cursor:pointer;border:none;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  text-align:center;
+}
+.mob-act-btn.png{background:var(--neon);color:var(--dark)}
+.mob-act-btn.pdf{background:rgba(123,97,255,0.2);color:var(--neon2);border:1px solid rgba(123,97,255,0.4)}
+.mob-act-btn.share{background:rgba(0,255,209,0.08);color:var(--neon);border:1px solid var(--border-neon)}
+@media(max-width:600px){
+  .ticket-actions{display:none!important}
+  .mob-action-bar.show{display:flex}
+  .page-wrap{padding-bottom:100px}
+}
 </style>
 </head>
 <body>
@@ -187,6 +215,13 @@ nav{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-
   </div>
 </div>
 
+<!-- MOBILE BOTTOM ACTION BAR -->
+<div class="mob-action-bar" id="mob-bar">
+  <button class="mob-act-btn png" onclick="downloadPNG()">⬇ PNG</button>
+  <button class="mob-act-btn pdf" onclick="downloadPDF()">⬇ PDF</button>
+  <button class="mob-act-btn share" onclick="shareTicket()">↗ Share</button>
+</div>
+
 <script>
 const SB_URL='https://ehzxoapgandezbhuvjrd.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoenhvYXBnYW5kZXpiaHV2anJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NzE0NDcsImV4cCI6MjA5NjQ0NzQ0N30.aR68BbL-X3TQoQNAhTKXizT5UvupYzYc13-nHs6xgDY';
@@ -247,6 +282,7 @@ async function renderTicket(b){
   document.getElementById('t-qr').src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&bgcolor=ffffff&color=000000&margin=2`;
   // Show ticket
   document.getElementById('ticket-wrap').style.display='block';
+  document.getElementById('mob-bar').classList.add('show');
   document.getElementById('ticket-wrap').scrollIntoView({behavior:'smooth',block:'start'});
 }
 

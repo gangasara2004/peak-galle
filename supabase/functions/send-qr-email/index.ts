@@ -4,7 +4,6 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 const ADMIN_EMAIL    = "gangasarajayawickrama@gmail.com";
 const SITE_URL       = Deno.env.get("SITE_URL") || "https://peak-nuwaraeliya.vercel.app";
 const TG_TOKEN       = Deno.env.get("TG_TOKEN") || "";
-const TG_CHAT_ID     = Deno.env.get("TG_CHAT_ID") || "";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
@@ -13,8 +12,7 @@ serve(async (req) => {
     if (type === "booking_received")  return await handleBookingReceived(booking);
     if (type === "payment_approved")  return await handleApproved(booking);
     if (type === "payment_rejected")  return await handleRejected(booking, extra?.reason);
-    if (type === "admin_notify")      return await handleAdminNotify(booking);
-    if (type === "tg_test")           return await sendTelegram("✅ PEAK Bot is working!");
+    if (type === "seat_assigned")     return await handleSeatAssigned(booking);
     return new Response(JSON.stringify({error:"unknown type"}),{status:400,headers:jsonHeaders()});
   } catch(e) {
     return new Response(JSON.stringify({error:String(e)}),{status:500,headers:jsonHeaders()});
@@ -24,21 +22,21 @@ serve(async (req) => {
 function corsHeaders(){ return {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type"}; }
 function jsonHeaders(){ return {"Content-Type":"application/json","Access-Control-Allow-Origin":"*"}; }
 
-// ── TELEGRAM ──
-async function sendTelegram(text: string) {
-  if (!TG_TOKEN || !TG_CHAT_ID) return new Response(JSON.stringify({tg:"skipped"}),{headers:jsonHeaders()});
+// ── TELEGRAM TO USER ──
+async function sendTelegramToUser(username: string, text: string) {
+  if (!TG_TOKEN || !username) return;
   try {
+    // First get chat_id from username via getUpdates or use username directly
     await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({
-        chat_id: TG_CHAT_ID,
+        chat_id: `@${username}`,
         text,
         parse_mode: "HTML"
       })
     });
-  } catch(e) { console.warn("TG error:", e); }
-  return new Response(JSON.stringify({tg:"sent"}),{headers:jsonHeaders()});
+  } catch(e) { console.warn("TG user error:", e); }
 }
 
 // ── EMAIL ──
@@ -65,6 +63,7 @@ function baseStyle() {
     .badge.green{background:rgba(0,255,209,0.12);color:#00FFD1;border:1px solid rgba(0,255,209,0.2)}
     .badge.red{background:rgba(255,107,107,0.12);color:#FF6B6B;border:1px solid rgba(255,107,107,0.2)}
     .badge.yellow{background:rgba(255,184,0,0.12);color:#FFB800;border:1px solid rgba(255,184,0,0.2)}
+    .badge.blue{background:rgba(123,97,255,0.12);color:#B8A9FF;border:1px solid rgba(123,97,255,0.2)}
     h2{font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px}
     p{font-size:0.86rem;color:#7A9BAD;line-height:1.75;margin-bottom:10px}
     p strong{color:#E8F4F8}
@@ -92,7 +91,7 @@ async function handleBookingReceived(b: any) {
     <div class="body">
       <span class="badge yellow">⏳ REGISTRATION RECEIVED</span>
       <h2>Hey ${b.name.split(' ')[0]}, you're almost in!</h2>
-      <p>Your registration has been received. To complete your booking, please transfer the payment and upload your payment slip.</p>
+      <p>Your registration has been received. Please transfer the payment and upload your payment slip to complete your booking.</p>
       <table class="table">
         <tr><td>Booking Ref</td><td><span class="ref">${b.booking_ref}</span></td></tr>
         <tr><td>Name</td><td>${b.name}</td></tr>
@@ -101,33 +100,30 @@ async function handleBookingReceived(b: any) {
         <tr><td>Food</td><td>${b.food_preference||'—'}</td></tr>
         <tr><td>Status</td><td>⏳ Pending Payment</td></tr>
       </table>
-      <div class="info-box"><p>📌 <strong>Next step:</strong> Make your payment and upload the slip on our website.<br>Your booking reference is <strong>${b.booking_ref}</strong> — keep this safe.<br><br>Questions? <strong>${ADMIN_EMAIL}</strong></p></div>
+      <div class="info-box"><p>📌 <strong>Next step:</strong> Make your payment and upload the slip on our website. Your booking reference is <strong>${b.booking_ref}</strong> — keep this safe.<br><br>Questions? <strong>${ADMIN_EMAIL}</strong></p></div>
       <a class="cta" href="${SITE_URL}/ticket.html?ref=${b.booking_ref}">VIEW YOUR TICKET</a>
     </div>
     <div class="footer">PEAK Adventures · Nuwara Eliya Day Expedition · Sri Lanka</div>
   </div></body></html>`;
 
-  // Telegram notification
-  const tgMsg = `🎟 <b>NEW BOOKING — PEAK</b>\n\n👤 <b>${b.name}</b>\n📧 ${b.email}\n📞 ${b.phone}\n🏫 ${b.institution||'—'}\n🏆 Rank #${b.district_rank||'—'}\n🍽 ${b.food_preference||'—'}\n📍 ${b.nearest_town||b.city||'—'}\n\n🔖 Ref: <code>${b.booking_ref}</code>\n💳 Payment: Slip Uploaded\n\n<a href="${SITE_URL}/admin.html">Open Admin Dashboard</a>`;
-  
-  const [emailRes] = await Promise.all([
-    sendEmail(b.email, `PEAK Adventures — Registration Received (${b.booking_ref})`, html),
-    sendTelegram(tgMsg)
-  ]);
-  return new Response(JSON.stringify({success:true,email:emailRes}),{headers:jsonHeaders()});
-}
+  const tgMsg = b.telegram_username
+    ? `🎟 <b>PEAK Adventures</b>\n\nHey ${b.name.split(' ')[0]}! Your registration is received.\n\n📋 Ref: <code>${b.booking_ref}</code>\n🏫 ${b.institution||'—'}\n🏆 Rank #${b.district_rank||'—'}\n\n⚡ <b>Next step:</b> Upload your payment slip to complete booking.\n\n<a href="${SITE_URL}/ticket.html?ref=${b.booking_ref}">View Ticket</a>`
+    : null;
 
-async function handleAdminNotify(b: any) {
-  const tgMsg = `💳 <b>PAYMENT SLIP UPLOADED</b>\n\n👤 <b>${b.name}</b>\n📧 ${b.email}\n🔖 Ref: <code>${b.booking_ref}</code>\n🏫 ${b.institution||'—'}\n🏆 Rank #${b.district_rank||'—'}\n\n⚡ Review the slip and approve/reject.\n<a href="${SITE_URL}/admin.html">Open Admin Dashboard</a>`;
-  await sendTelegram(tgMsg);
+  await Promise.all([
+    sendEmail(b.email, `PEAK Adventures — Registration Received (${b.booking_ref})`, html),
+    tgMsg ? sendTelegramToUser(b.telegram_username, tgMsg) : Promise.resolve()
+  ]);
   return new Response(JSON.stringify({success:true}),{headers:jsonHeaders()});
 }
 
 async function handleApproved(b: any) {
   const seatInfo = b.seat_numbers?.length
     ? `<div class="seat-box"><div class="seat-label">Your Seat${b.seat_numbers.length>1?'s':''}</div><div class="seat-num">${b.seat_numbers.join(' · ')}</div><div class="seat-label" style="margin-top:4px">${b.bus_name||'Bus 1'}</div></div>`
-    : `<div class="info-box"><p>🪑 Your seat will be assigned soon. You'll receive an update with your seat details.</p></div>`;
+    : `<div class="info-box"><p>🪑 Your seat will be assigned soon. You'll receive another notification with your seat details.</p></div>`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(b.qr_token)}&bgcolor=ffffff&color=000000&margin=0`;
+  const noteSection = b.admin_note ? `<div class="info-box"><p>📝 <strong>Note from PEAK:</strong> ${b.admin_note}</p></div>` : '';
+
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${baseStyle()}</head><body><div class="wrap">
     <div class="header"><div class="logo">PEAK</div><div class="logo-sub">ADVENTURES · NUWARA ELIYA</div></div>
     <div class="body">
@@ -143,6 +139,7 @@ async function handleApproved(b: any) {
         <tr><td>Status</td><td>✅ Confirmed</td></tr>
       </table>
       ${seatInfo}
+      ${noteSection}
       <div class="qr-wrap">
         <img src="${qrSrc}" width="180" height="180" alt="QR Code">
         <div class="qr-label">Show this QR at check-in</div>
@@ -153,13 +150,15 @@ async function handleApproved(b: any) {
     <div class="footer">PEAK Adventures · Nuwara Eliya Day Expedition · Sri Lanka</div>
   </div></body></html>`;
 
-  const tgMsg = `✅ <b>PAYMENT APPROVED</b>\n\n👤 <b>${b.name}</b>\n📧 ${b.email}\n🔖 Ref: <code>${b.booking_ref}</code>\n🏫 ${b.institution||'—'}\n🏆 Rank #${b.district_rank||'—'}\n🪑 Seat: ${b.seat_numbers?.join(', ')||'Not assigned'}\n\nQR email sent to booker.`;
+  const tgMsg = b.telegram_username
+    ? `✅ <b>PEAK Adventures — CONFIRMED!</b>\n\nHey ${b.name.split(' ')[0]}! Your payment is approved.\n\n📋 Ref: <code>${b.booking_ref}</code>\n${b.admin_note?`📝 Note: ${b.admin_note}\n`:''}\n🎟 <a href="${SITE_URL}/ticket.html?ref=${b.booking_ref}">View & Download Your Ticket</a>\n\nShow your QR code at the check-in gate. See you there! 🏔️`
+    : null;
 
-  const [emailRes] = await Promise.all([
+  await Promise.all([
     sendEmail(b.email, `✅ PEAK Adventures — You're Confirmed! (${b.booking_ref})`, html),
-    sendTelegram(tgMsg)
+    tgMsg ? sendTelegramToUser(b.telegram_username, tgMsg) : Promise.resolve()
   ]);
-  return new Response(JSON.stringify({success:true,email:emailRes}),{headers:jsonHeaders()});
+  return new Response(JSON.stringify({success:true}),{headers:jsonHeaders()});
 }
 
 async function handleRejected(b: any, reason?: string) {
@@ -175,11 +174,49 @@ async function handleRejected(b: any, reason?: string) {
     <div class="footer">PEAK Adventures · Nuwara Eliya Day Expedition · Sri Lanka</div>
   </div></body></html>`;
 
-  const tgMsg = `❌ <b>PAYMENT REJECTED</b>\n\n👤 <b>${b.name}</b>\n🔖 Ref: <code>${b.booking_ref}</code>\nReason: ${reason||'Unclear slip'}\n\nRejection email sent to booker.`;
+  const tgMsg = b.telegram_username
+    ? `❌ <b>PEAK Adventures</b>\n\nHey ${b.name.split(' ')[0]}, your payment slip could not be verified.\n\nReason: ${reason||'Slip unclear or payment mismatch.'}\n\nPlease upload a new slip: <a href="${SITE_URL}#booking">Upload Here</a>`
+    : null;
 
-  const [emailRes] = await Promise.all([
+  await Promise.all([
     sendEmail(b.email, `❌ PEAK Adventures — Payment Slip Issue (${b.booking_ref})`, html),
-    sendTelegram(tgMsg)
+    tgMsg ? sendTelegramToUser(b.telegram_username, tgMsg) : Promise.resolve()
   ]);
-  return new Response(JSON.stringify({success:true,email:emailRes}),{headers:jsonHeaders()});
+  return new Response(JSON.stringify({success:true}),{headers:jsonHeaders()});
+}
+
+async function handleSeatAssigned(b: any) {
+  const seatNums = b.seat_numbers?.join(', ')||'—';
+  const busName = b.bus_name||'Bus 1';
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(b.qr_token)}&bgcolor=ffffff&color=000000&margin=0`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${baseStyle()}</head><body><div class="wrap">
+    <div class="header"><div class="logo">PEAK</div><div class="logo-sub">ADVENTURES · NUWARA ELIYA</div></div>
+    <div class="body">
+      <span class="badge blue">🪑 SEAT ASSIGNED</span>
+      <h2>Your seat is ready, ${b.name.split(' ')[0]}!</h2>
+      <p>Your seat has been assigned for the PEAK Nuwara Eliya Day Expedition.</p>
+      <div class="seat-box">
+        <div class="seat-label">Your Seat${b.seat_numbers?.length>1?'s':''}</div>
+        <div class="seat-num">${seatNums}</div>
+        <div class="seat-label" style="margin-top:4px">${busName}</div>
+      </div>
+      <div class="qr-wrap">
+        <img src="${qrSrc}" width="160" height="160" alt="QR Code">
+        <div class="qr-label">Updated QR — Show at check-in</div>
+      </div>
+      <a class="cta" href="${SITE_URL}/ticket.html?ref=${b.booking_ref}">VIEW UPDATED TICKET</a>
+    </div>
+    <div class="footer">PEAK Adventures · Nuwara Eliya Day Expedition · Sri Lanka</div>
+  </div></body></html>`;
+
+  const tgMsg = b.telegram_username
+    ? `🪑 <b>PEAK Adventures — Seat Assigned!</b>\n\nHey ${b.name.split(' ')[0]}! Your seat has been assigned.\n\n🚌 ${busName}\n💺 Seat: <b>${seatNums}</b>\n\n<a href="${SITE_URL}/ticket.html?ref=${b.booking_ref}">View Updated Ticket</a>`
+    : null;
+
+  await Promise.all([
+    sendEmail(b.email, `🪑 PEAK Adventures — Your Seat is Assigned! (${b.booking_ref})`, html),
+    tgMsg ? sendTelegramToUser(b.telegram_username, tgMsg) : Promise.resolve()
+  ]);
+  return new Response(JSON.stringify({success:true}),{headers:jsonHeaders()});
 }
