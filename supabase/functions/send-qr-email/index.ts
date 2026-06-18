@@ -195,7 +195,7 @@ async function handleSeatAssigned(b: any) {
     <div class="body">
       <span class="badge blue">🪑 SEAT ASSIGNED</span>
       <h2>Your seat is ready, ${b.name.split(' ')[0]}!</h2>
-      <p>Your seat has been assigned for the PEAK Nuwara Eliya Day Expedition.</p>
+      <p>Your seat has been assigned for the PEAK Galle Day Expedition.</p>
       <div class="seat-box">
         <div class="seat-label">Your Seat${b.seat_numbers?.length>1?'s':''}</div>
         <div class="seat-num">${seatNums}</div>

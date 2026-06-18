@@ -63,9 +63,9 @@ CREATE TABLE IF NOT EXISTS trip_config (
 );
 INSERT INTO trip_config (key, value) VALUES
   ('trip_date',      ''),('ticket_price',''),('total_capacity','50'),
-  ('bookings_open',  'true'),('show_price','false'),('trip_name','Nuwara Eliya Day Expedition'),
+  ('bookings_open',  'true'),('show_price','false'),('trip_name','Galle Day Expedition'),
   ('org_name',       'PEAK Adventures'),('contact_email','gangasarajayawickrama@gmail.com'),
-  ('contact_phone',  ''),('bank_name',''),('bank_account',''),('bank_branch','')
+  ('contact_phone',  ''),('bank_name',''),('bank_account_name',''),('bank_account',''),('bank_branch','')
 ON CONFLICT (key) DO NOTHING;
 
 -- ── AUTO updated_at ──

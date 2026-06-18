@@ -529,7 +529,7 @@ td.md{color:var(--muted);font-size:0.72rem}
         </div>
         <div class="s-card">
           <div class="s-card-title">Trip Configuration</div>
-          <div class="s-row"><div><div class="s-lbl">Trip Name</div></div><input class="s-input" id="s-tripname" placeholder="Nuwara Eliya Day Expedition"></div>
+          <div class="s-row"><div><div class="s-lbl">Trip Name</div></div><input class="s-input" id="s-tripname" placeholder="Galle Day Expedition"></div>
           <div class="s-row"><div><div class="s-lbl">Trip Date</div></div><input class="s-input" type="date" id="s-date"></div>
           <div class="s-row"><div><div class="s-lbl">Ticket Price (LKR)</div></div><input class="s-input" type="number" id="s-price" placeholder="4500"></div>
           <div class="s-row"><div><div class="s-lbl">Total Seat Capacity</div></div><input class="s-input" type="number" id="s-capacity" placeholder="50"></div>
@@ -538,6 +538,7 @@ td.md{color:var(--muted);font-size:0.72rem}
         <div class="s-card">
           <div class="s-card-title">Payment Details</div>
           <div class="s-row"><div><div class="s-lbl">Bank Name</div></div><input class="s-input" id="s-bank" placeholder="Bank of Ceylon"></div>
+          <div class="s-row"><div><div class="s-lbl">Account Name</div></div><input class="s-input" id="s-account-name" placeholder="John Doe"></div>
           <div class="s-row"><div><div class="s-lbl">Account Number</div></div><input class="s-input" id="s-acc" placeholder="1234567890"></div>
           <div class="s-row"><div><div class="s-lbl">Branch</div></div><input class="s-input" id="s-branch" placeholder="Kandy"></div>
           <button class="save-btn" onclick="savePaymentConfig()">SAVE PAYMENT DETAILS</button>
@@ -1208,6 +1209,7 @@ async function loadConfig(){
   if(cfg.contact_email)document.getElementById('s-email').value=cfg.contact_email;
   if(cfg.contact_phone)document.getElementById('s-phone').value=cfg.contact_phone;
   if(cfg.bank_name)document.getElementById('s-bank').value=cfg.bank_name;
+  if(cfg.bank_account_name)document.getElementById('s-account-name').value=cfg.bank_account_name;
   if(cfg.bank_account)document.getElementById('s-acc').value=cfg.bank_account;
   if(cfg.bank_branch)document.getElementById('s-branch').value=cfg.bank_branch;
   if(cfg.trip_name)document.getElementById('s-tripname').value=cfg.trip_name;
@@ -1224,7 +1226,7 @@ async function cfgUpdate(updates){
 }
 async function saveOrgSettings(){if(await cfgUpdate([{key:'org_name',value:document.getElementById('s-orgname').value},{key:'contact_email',value:document.getElementById('s-email').value},{key:'contact_phone',value:document.getElementById('s-phone').value}]))showToast('Org settings saved')}
 async function saveTripConfig(){if(await cfgUpdate([{key:'trip_name',value:document.getElementById('s-tripname').value},{key:'trip_date',value:document.getElementById('s-date').value},{key:'ticket_price',value:document.getElementById('s-price').value},{key:'total_capacity',value:document.getElementById('s-capacity').value}]))showToast('Trip config saved')}
-async function savePaymentConfig(){if(await cfgUpdate([{key:'bank_name',value:document.getElementById('s-bank').value},{key:'bank_account',value:document.getElementById('s-acc').value},{key:'bank_branch',value:document.getElementById('s-branch').value}]))showToast('Payment details saved')}
+async function savePaymentConfig(){if(await cfgUpdate([{key:'bank_name',value:document.getElementById('s-bank').value},{key:'bank_account_name',value:document.getElementById('s-account-name').value},{key:'bank_account',value:document.getElementById('s-acc').value},{key:'bank_branch',value:document.getElementById('s-branch').value}]))showToast('Payment details saved')}
 async function saveToggles(){if(await cfgUpdate([{key:'bookings_open',value:document.getElementById('s-open').checked?'true':'false'},{key:'show_price',value:document.getElementById('s-show-price').checked?'true':'false'}]))showToast('Controls saved')}
 
 // ── LOGO ──

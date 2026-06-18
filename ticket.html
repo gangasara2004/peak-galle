@@ -188,7 +188,7 @@ nav{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-
       <div class="ticket-info-grid">
         <div class="ticket-info-item"><div class="ti-label">Booking Ref</div><div class="ti-val" id="t-ref" style="font-family:monospace;color:var(--neon);font-size:0.78rem">—</div></div>
         <div class="ticket-info-item"><div class="ti-label">Seats</div><div class="ti-val" id="t-seats">—</div></div>
-        <div class="ticket-info-item"><div class="ti-label">Trip</div><div class="ti-val" id="t-trip">Nuwara Eliya</div></div>
+        <div class="ticket-info-item"><div class="ti-label">Trip</div><div class="ti-val" id="t-trip">Galle</div></div>
         <div class="ticket-info-item"><div class="ti-label">Date</div><div class="ti-val" id="t-date">TBA</div></div>
         <div class="ticket-info-item"><div class="ti-label">NIC</div><div class="ti-val" id="t-nic">—</div></div>
         <div class="ticket-info-item"><div class="ti-label">Town</div><div class="ti-val" id="t-town">—</div></div>
@@ -206,7 +206,7 @@ nav{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-
       </div>
       <div class="ticket-footer">
         <div class="ticket-footer-left">
-          PEAK Adventures · Nuwara Eliya Day Expedition<br>
+          PEAK Adventures · Galle Day Expedition<br>
           <span id="t-footer-date">—</span>
         </div>
         <div class="ticket-footer-right">PEAK · SRI LANKA</div>
@@ -256,7 +256,7 @@ async function renderTicket(b){
   const{data:cfg}=await sb.from('trip_config').select('key,value');
   const config={};(cfg||[]).forEach(r=>config[r.key]=r.value);
   const tripDate=config.trip_date?new Date(config.trip_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'TBA';
-  const tripName=config.trip_name||'Nuwara Eliya Day Expedition';
+  const tripName=config.trip_name||'Galle Day Expedition';
   // Status badge
   const badge=document.getElementById('t-status-badge');
   badge.textContent=b.status.toUpperCase();
@@ -318,7 +318,7 @@ async function shareTicket(){
   const ref=document.getElementById('t-ref').textContent;
   const url=`${window.location.origin}/ticket.html?ref=${ref}`;
   if(navigator.share){
-    navigator.share({title:'PEAK Adventures Ticket',text:`My ticket for the PEAK Nuwara Eliya Day Expedition`,url});
+    navigator.share({title:'PEAK Adventures Ticket',text:`My ticket for the PEAK Galle Day Expedition`,url});
   } else {
     await navigator.clipboard.writeText(url);
     alert('Ticket link copied to clipboard!');
