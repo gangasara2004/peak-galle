@@ -59,10 +59,14 @@ nav{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-
 
 /* HERO */
 #hero{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding-top:68px}
-.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 65% 55% at 50% 55%,rgba(0,255,209,0.06) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 85% 15%,rgba(123,97,255,0.09) 0%,transparent 60%)}
-.mt-far{position:absolute;bottom:0;left:0;right:0;height:42%;background:linear-gradient(180deg,rgba(13,34,51,0.6) 0%,var(--dark2) 100%);clip-path:polygon(0% 100%,0% 55%,7% 35%,14% 52%,21% 22%,29% 44%,36% 8%,43% 36%,50% 3%,57% 28%,64% 16%,71% 40%,78% 18%,85% 46%,92% 28%,100% 50%,100% 100%)}
-.mt-mid{position:absolute;bottom:0;left:0;right:0;height:30%;background:rgba(8,24,34,0.85);clip-path:polygon(0% 100%,0% 78%,9% 58%,19% 74%,30% 42%,41% 65%,52% 36%,63% 60%,74% 48%,84% 68%,94% 52%,100% 62%,100% 100%)}
-.mt-near{position:absolute;bottom:0;left:0;right:0;height:18%;background:var(--dark);clip-path:polygon(0% 100%,0% 90%,15% 70%,30% 85%,45% 65%,60% 80%,75% 60%,90% 78%,100% 65%,100% 100%)}
+.hero-bg{position:absolute;inset:0;background:
+  radial-gradient(ellipse at 50% 18%,rgba(255,210,93,0.12) 0%,transparent 16%),
+  radial-gradient(ellipse at 78% 14%,rgba(255,145,70,0.1) 0%,transparent 12%),
+  linear-gradient(180deg,rgba(3,15,29,0.1) 0%,rgba(4,13,18,0.2) 50%,rgba(4,13,18,0.35) 100%)}
+.hero-bg::before{content:'';position:absolute;top:18%;left:50%;transform:translateX(-50%);width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,93,0.42) 0%,rgba(255,145,70,0.08) 58%,transparent 72%)}
+.mt-far{position:absolute;bottom:0;left:-5%;right:-5%;height:46%;background:linear-gradient(180deg,rgba(18,56,78,0.6) 0%,rgba(6,22,36,0.98) 100%);clip-path:ellipse(78% 42% at 50% 76%)}
+.mt-mid{position:absolute;bottom:0;left:0;right:0;height:32%;background:linear-gradient(180deg,rgba(12,44,62,0.88) 0%,rgba(7,24,38,0.98) 100%);clip-path:polygon(0% 100%,0% 72%,7% 66%,14% 76%,22% 60%,32% 74%,42% 52%,52% 70%,62% 56%,72% 76%,82% 58%,92% 72%,100% 58%,100% 100%)}
+.mt-near{position:absolute;bottom:0;left:0;right:0;height:18%;background:linear-gradient(180deg,rgba(255,222,134,0.18) 0%,rgba(255,181,67,0.08) 45%,rgba(4,13,18,0.98) 100%);clip-path:polygon(0% 100%,0% 86%,10% 78%,20% 88%,30% 72%,42% 90%,55% 74%,68% 88%,80% 76%,92% 90%,100% 78%,100% 100%)}
 .hero-content{position:relative;z-index:2;text-align:center;padding:2rem 1.5rem;max-width:860px;width:100%}
 .hero-badge{display:inline-block;border:1px solid var(--border-neon);background:var(--glass);color:var(--neon);font-family:var(--font-d);font-size:0.55rem;letter-spacing:4px;padding:0.4rem 1.2rem;margin-bottom:2rem;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);animation:pglow 3s ease-in-out infinite}
 @keyframes pglow{0%,100%{box-shadow:0 0 0 rgba(0,255,209,0)}50%{box-shadow:0 0 24px rgba(0,255,209,0.18)}}
