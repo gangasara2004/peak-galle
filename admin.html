@@ -286,7 +286,7 @@ td.md{color:var(--muted);font-size:0.72rem}
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo-row">
-      <img src="logo.png" id="login-logo" style="width:38px;height:38px;object-fit:contain;filter:brightness(0) invert(1)" onerror="this.style.display='none'">
+      <div class="login-logo-placeholder" id="login-logo">P</div>
       <div class="login-logo-text">PEAK</div>
     </div>
     <div class="login-subtitle">ADMIN DASHBOARD</div>
@@ -304,7 +304,7 @@ td.md{color:var(--muted);font-size:0.72rem}
   <div class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="sb-logo-row">
-        <img src="logo.png" id="sb-logo" style="width:32px;height:32px;object-fit:contain;filter:brightness(0) invert(1)" onerror="this.style.display='none'">
+        <div class="sb-logo-placeholder" id="sb-logo">P</div>
         <div><div class="s-logo">PEAK</div><div class="s-logo-sub">ADMIN PORTAL</div></div>
       </div>
     </div>
@@ -446,10 +446,17 @@ td.md{color:var(--muted);font-size:0.72rem}
           <button class="scanner-btn" id="start-scan-btn" onclick="startScanner()">⟢ START SCANNER</button>
           <button class="scanner-btn stop" id="stop-scan-btn" onclick="stopScanner()" style="display:none">■ STOP</button>
           <div style="margin-top:1rem">
-            <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem">Or enter QR token manually:</p>
+            <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem">Enter QR token manually:</p>
             <div style="display:flex;gap:0.5rem">
               <input id="manual-token" type="text" placeholder="TKN-XXXXXX-XXXXXX" style="flex:1;background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text);padding:0.55rem 0.8rem;font-family:var(--fb);font-size:0.82rem;outline:none;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)" onkeydown="if(event.key==='Enter')manualScan()">
               <button class="scanner-btn" style="margin:0;padding:0.55rem 1rem;font-size:0.6rem" onclick="manualScan()">CHECK IN</button>
+            </div>
+          </div>
+          <div style="margin-top:0.8rem">
+            <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem">Or search by NIC number:</p>
+            <div style="display:flex;gap:0.5rem">
+              <input id="nic-search" type="text" placeholder="e.g. 200012345678" style="flex:1;background:rgba(0,0,0,0.4);border:1px solid rgba(123,97,255,0.3);color:var(--text);padding:0.55rem 0.8rem;font-family:var(--fb);font-size:0.82rem;outline:none;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)" onkeydown="if(event.key==='Enter')nicSearch()">
+              <button class="scanner-btn" style="margin:0;padding:0.55rem 1rem;font-size:0.6rem;background:rgba(123,97,255,0.2);color:var(--neon2)" onclick="nicSearch()">LOOKUP</button>
             </div>
           </div>
           <div class="scanner-result" id="scanner-result"></div>
@@ -997,6 +1004,37 @@ function stopScanner(){
   document.getElementById('stop-scan-btn').style.display='none';
 }
 function manualScan(){const t=document.getElementById('manual-token').value.trim();if(t)processQR(t)}
+
+async function nicSearch(){
+  const nic=document.getElementById('nic-search').value.trim();
+  if(!nic)return;
+  const res=document.getElementById('scanner-result');
+  res.style.display='block';
+  res.innerHTML='<div style="color:var(--muted);font-family:var(--fd);font-size:0.7rem;letter-spacing:2px">SEARCHING...</div>';
+  const{data:bk}=await sb.from('bookings').select('*').eq('nic_number',nic).neq('status','cancelled').single();
+  if(!bk){res.innerHTML=`<div class="scan-status err">❌ No booking found for NIC: ${nic}</div>`;return}
+  const sa=allSeats.filter(s=>s.booking_id===bk.id);
+  const seatNums=sa.map(s=>s.seat_number).join(' · ')||'NOT ASSIGNED';
+  const busNames=[...new Set(sa.map(s=>s.buses?.name||'Bus'))].join(', ')||'—';
+  res.innerHTML=`
+    <div class="scan-name">${bk.name}</div>
+    <div class="scan-detail">NIC: ${bk.nic_number} | Ref: ${bk.booking_ref}</div>
+    <div class="scan-detail">Institution: ${bk.institution||'—'} | Rank #${bk.district_rank||'—'}</div>
+    <div class="scan-seat">${seatNums}</div>
+    <div class="scan-detail">${busNames}</div>
+    <div class="scan-detail">Payment: ${bk.payment_status} | Status: ${bk.status}</div>
+    <div class="scan-status ${bk.attended?'err':'ok'}">${bk.attended?'⚠ ALREADY CHECKED IN':'✅ FOUND — Mark attendance?'}</div>
+    ${!bk.attended&&bk.payment_status==='approved'?`<button class="scanner-btn" style="margin-top:0.8rem;font-size:0.62rem;padding:0.6rem 1.5rem" onclick="markAttendanceById('${bk.id}')">✓ MARK ATTENDED</button>`:''}
+  `;
+}
+
+async function markAttendanceById(id){
+  await sb.from('bookings').update({attended:true,attended_at:new Date().toISOString()}).eq('id',id);
+  await loadBookings();
+  updateAttendanceCounter();
+  nicSearch();
+  showToast('✅ Attendance marked');
+}
 let lastScanned='',lastScanTime=0;
 function updateAttendanceCounter(){
   const confirmed=allBookings.filter(b=>b.status==='confirmed'&&b.payment_status==='approved');
