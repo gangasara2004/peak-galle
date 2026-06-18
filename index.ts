@@ -66,7 +66,7 @@ function baseStyle() {
 
 async function sendBookingReceived(b:any) {
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${baseStyle()}</head><body><div class="wrap">
-    <div class="header"><div class="logo">PEAK</div><div class="logo-sub">ADVENTURES · NUWARA ELIYA</div></div>
+    <div class="header"><div class="logo">PEAK</div><div class="logo-sub">ADVENTURES · GALLE</div></div>
     <div class="body">
       <span class="badge yellow">⏳ BOOKING RECEIVED</span>
       <h2>Hey ${b.name.split(' ')[0]}, you're almost in!</h2>
@@ -81,7 +81,7 @@ async function sendBookingReceived(b:any) {
       <div class="info-box"><p>📌 <strong>Next step:</strong> Make your payment and upload the slip on our website.<br>Your booking reference is <strong>${b.booking_ref}</strong> — keep this safe.<br><br>Questions? Contact us: <strong>${ADMIN_EMAIL}</strong></p></div>
       <a class="cta" href="${SITE_URL}#booking">UPLOAD PAYMENT SLIP</a>
     </div>
-    <div class="footer">PEAK Adventures · Nuwara Eliya Day Expedition · Sri Lanka<br>This is an automated email. Do not reply.</div>
+    <div class="footer">PEAK Adventures · Galle Day Expedition · Sri Lanka<br>This is an automated email. Do not reply.</div>
   </div></body></html>`;
   const [adminRes, bookerRes] = await Promise.all([
     sendEmail(ADMIN_EMAIL, `🎟 New Booking: ${b.booking_ref} — ${b.name} (${b.seats} seat${b.seats>1?'s':''})`, html),
@@ -117,11 +117,11 @@ async function sendQRApproval(b:any) {
     : `<div class="info-box"><p>🪑 Your seat will be assigned soon. Check your email for an update.</p></div>`;
   const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(b.qr_token)}&bgcolor=ffffff&color=000000&margin=0`;
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${baseStyle()}</head><body><div class="wrap">
-    <div class="header"><div class="logo">PEAK</div><div class="logo-sub">ADVENTURES · NUWARA ELIYA</div></div>
+    <div class="header"><div class="logo">PEAK</div><div class="logo-sub">ADVENTURES · GALLE</div></div>
     <div class="body">
       <span class="badge green">✅ PAYMENT APPROVED · CONFIRMED</span>
       <h2>You're confirmed, ${b.name.split(' ')[0]}!</h2>
-      <p>Your payment has been verified and your seat is confirmed for the PEAK Nuwara Eliya Day Expedition. Show the QR code below at the check-in gate.</p>
+      <p>Your payment has been verified and your seat is confirmed for the PEAK Galle Day Expedition. Show the QR code below at the check-in gate.</p>
       <table class="table">
         <tr><td>Booking Ref</td><td><span class="ref">${b.booking_ref}</span></td></tr>
         <tr><td>Name</td><td>${b.name}</td></tr>
@@ -135,7 +135,7 @@ async function sendQRApproval(b:any) {
       </div>
       <div class="info-box"><p>⚠️ <strong>Important:</strong> This QR code is unique to your booking. Do not share it. Screenshot and save it — you must show it at the gate on the day of the trip.<br><br>📞 Questions? <strong>${ADMIN_EMAIL}</strong></p></div>
     </div>
-    <div class="footer">PEAK Adventures · Nuwara Eliya Day Expedition · Sri Lanka</div>
+    <div class="footer">PEAK Adventures · Galle Day Expedition · Sri Lanka</div>
   </div></body></html>`;
   const res = await sendEmail(b.email, `✅ PEAK Adventures — You're Confirmed! (${b.booking_ref})`, html);
   return new Response(JSON.stringify({success:true,res}),{headers:jsonHeaders()});
@@ -143,7 +143,7 @@ async function sendQRApproval(b:any) {
 
 async function sendRejection(b:any) {
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${baseStyle()}</head><body><div class="wrap">
-    <div class="header"><div class="logo">PEAK</div><div class="logo-sub">ADVENTURES · NUWARA ELIYA</div></div>
+    <div class="header"><div class="logo">PEAK</div><div class="logo-sub">ADVENTURES · GALLE</div></div>
     <div class="body">
       <span class="badge red">❌ PAYMENT NOT VERIFIED</span>
       <h2>Payment slip issue — action needed</h2>
@@ -151,7 +151,7 @@ async function sendRejection(b:any) {
       <div class="info-box"><p>Reason: ${b.reject_reason||'Slip was unclear or payment details did not match.'}<br><br>Please visit the website to upload a new slip or contact us directly at <strong>${ADMIN_EMAIL}</strong></p></div>
       <a class="cta" href="${SITE_URL}#booking">UPLOAD NEW SLIP</a>
     </div>
-    <div class="footer">PEAK Adventures · Nuwara Eliya Day Expedition · Sri Lanka</div>
+    <div class="footer">PEAK Adventures · Galle Day Expedition · Sri Lanka</div>
   </div></body></html>`;
   const res = await sendEmail(b.email, `❌ PEAK Adventures — Payment Slip Issue (${b.booking_ref})`, html);
   return new Response(JSON.stringify({success:true,res}),{headers:jsonHeaders()});

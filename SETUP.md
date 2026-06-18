@@ -1,4 +1,4 @@
-# PEAK Nuwara Eliya — Full Setup Guide v2
+# PEAK Galle — Full Setup Guide v2
 
 ## Files in this package
 - `index.html` — Public booking site
@@ -74,29 +74,29 @@ supabase secrets set SITE_URL=https://your-site.vercel.app
 ### Why Vercel + GitHub?
 - Every `git push` auto-deploys — no manual uploads
 - Free SSL certificate automatically
-- Clean URL like `peak-nuwaraeliya.vercel.app`
+- Clean URL like `peak-galle.vercel.app`
 - You already use Vercel for PEAK '25 so it's familiar
 - Instant rollbacks if something breaks
 
 ### How to deploy
-1. Create a new GitHub repo (e.g. `peak-nuwaraeliya`)
+1. Create a new GitHub repo (e.g. `peak-galle`)
 2. Push your files:
 ```bash
 git init
 git add .
 git commit -m "initial commit"
-git remote add origin https://github.com/gangasara2004/peak-nuwaraeliya.git
+git remote add origin https://github.com/gangasara2004/peak-galle.git
 git push -u origin main
 ```
 3. Go to https://vercel.com → **Add New Project**
 4. Import the GitHub repo
 5. Framework: **Other** (static HTML — no build needed)
 6. Click **Deploy**
-7. Your site is live at `peak-nuwaraeliya.vercel.app`
+7. Your site is live at `peak-galle.vercel.app`
 
 ### Update your edge function SITE_URL
 ```bash
-supabase secrets set SITE_URL=https://peak-nuwaraeliya.vercel.app
+supabase secrets set SITE_URL=https://peak-galle.vercel.app
 ```
 
 ---

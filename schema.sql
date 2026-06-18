@@ -1,5 +1,5 @@
 -- ============================================================
--- PEAK Nuwara Eliya — Full Schema v2
+-- PEAK Galle — Full Schema v2
 -- Run in Supabase → SQL Editor → New Query
 -- ============================================================
 
