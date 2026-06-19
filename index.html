@@ -340,7 +340,7 @@ footer{position:relative;z-index:2;background:var(--dark2);border-top:1px solid 
   <div style="position:absolute;inset:0;z-index:0;overflow:hidden">
     <canvas id="hero-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:0"></canvas>
 
-<canvas id="hero-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:0">
+<svg id="hero-lh" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1" viewBox="0 0 1400 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <radialGradient id="beamG" cx="50%" cy="100%" r="100%"><stop offset="0%" stop-color="#00FFD1" stop-opacity="0.18"/><stop offset="100%" stop-color="#00FFD1" stop-opacity="0"/></radialGradient>
     <radialGradient id="baseG" cx="50%" cy="0%" r="100%"><stop offset="0%" stop-color="#00FFD1" stop-opacity="0.05"/><stop offset="100%" stop-color="#040D12" stop-opacity="0"/></radialGradient>
@@ -369,7 +369,7 @@ footer{position:relative;z-index:2;background:var(--dark2);border-top:1px solid 
 </svg>
     <div id="tod-label" style="position:absolute;top:80px;right:24px;font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;color:rgba(232,244,248,0.35);text-transform:uppercase;z-index:3"></div>
   </div>
-  <div class="hero-content" style="position:relative;z-index:0">
+  <div class="hero-content">
     <div class="hero-badge">◈ PEAK ADVENTURES · GALLE DAY EXPEDITION ◈</div>
 <h1 class="hero-title">Galle</h1>
 <p class="hero-sub">SOUTHERN SRI LANKA · UNESCO WORLD HERITAGE</p>
@@ -935,4 +935,3 @@ async function reuploadSlip(bookingId,bookingRef,input){
 </script>
 </body>
 </html>
-
